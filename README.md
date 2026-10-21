@@ -1,6 +1,6 @@
 # Enrichment Pal — Demo Walkthrough (AILT9019)
 
-**Open:** double-click `enrichment-pal-chatbot.html` in any browser. No installation, no login, no API key — everything runs locally in the page. Nothing you type is stored.
+**Setup:** Download this project repository, then open the enrichment-pal-chatbot.html file. It will open a web page, where you can input your queries and interact with Medipal. No login, no API key — everything runs locally in the page. Nothing you type is stored.
 
 **Scope:** answers come only from a fixed corpus of 8 official UHS pages (source + retrieval date shown on every answer). Student project, not an official HKU service.
 
