@@ -1,4 +1,4 @@
-# Enrichment Pal — Demo Walkthrough (AILT9019)
+# Medipal — Demo Walkthrough (AILT9019)
 
 **Setup:** Download this project repository, then open the enrichment-pal-chatbot.html file. It will open a web page, where you can input your queries and interact with Medipal. No login, no API key — everything runs locally in the page. Nothing you type is stored.
 
