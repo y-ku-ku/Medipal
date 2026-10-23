@@ -498,7 +498,7 @@ function addChips(){ chipsEl.innerHTML=""; SUGGESTIONS.forEach(s=>{
 
 function send(){
   const q=inputEl.value.trim(); if(!q)return;
-  addMsg(q.replace(/&/g,"&amp;").replace(/</g,"&lt;"),"user");
+  addMsg(q.replace(/&/g,"&amp;").replace(/</g,"&lt;"),"user","user");
   inputEl.value=""; chipsEl.innerHTML="";
   const row = document.createElement("div"); row.className = "row";
   row.innerHTML = `<div class="avatar">${LOGO_MINI}</div>`;
