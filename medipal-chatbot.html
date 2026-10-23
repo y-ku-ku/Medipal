@@ -3,7 +3,7 @@
 <head data-page-node-id="VjpLyuH9oZb97ZtRKCq3kY">
 <meta charset="UTF-8" data-page-node-id="TVJOM9TnKlrZUIhTUeBrBn">
 <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="gnxQ5vhVNqek64BJBm1tZa">
-<title>Enrichment Pal — UHS Clinical Services Assistant</title>
+<title>Medipal — UHS Clinical Services Assistant</title>
 <style>
   :root{
     --hku-green:#006747; --hku-green-dark:#004D36; --hku-green-light:#E6F2EE;
@@ -73,7 +73,7 @@
 <header data-page-node-id="PtocAyHhhvuA19DH8EI29a">
   <div class="logo" data-page-node-id="VH31UNqjnNeJXi5jcHt2ev">EP</div>
   <div data-page-node-id="OStPvjVwH5FcyHz6KHBPuR">
-    <h1 data-page-node-id="W4SOA4DVhq8wR1eAw8klHt">Enrichment Pal</h1>
+    <h1 data-page-node-id="W4SOA4DVhq8wR1eAw8klHt">Medipal</h1>
     <div class="sub" data-page-node-id="Jo1EY7BFQpT2YbkPdqVk1s">UHS clinical-services assistant · student project (AILT9019) · not an official HKU service</div>
   </div>
 </header>
@@ -147,7 +147,7 @@ Follow the Safety Office's Response for Medical Emergency. The nearest Accident 
 · Broken tooth with pain or sensitivity
 · Oral lesion and any other dental emergency
 
-⚠️ <i>Enrichment Pal is not for emergency handling. In a life-threatening situation call <b>999</b> immediately.</i>`
+⚠️ <i>Medipal is not for emergency handling. In a life-threatening situation call <b>999</b> immediately.</i>`
 },
 {
   id:"eligibility", title:"Eligibility", src:"Eligibility to Use UHS Services | HKU",
@@ -276,7 +276,7 @@ ${cite(e)}`};
   if(PROOF_RX.test(q)){
     const e = KB.find(x=>x.id==="charter");
     return {cls:"bot refusal", html:
-`🚫 <b>Enrichment Pal cannot issue or help obtain medical proof for course deadlines or absences.</b>
+`🚫 <b>Medipal cannot issue or help obtain medical proof for course deadlines or absences.</b>
 
 Per the Patients' Charter, patients <b>should not ask health care providers to provide incorrect information, receipts or certificates</b>. If a legitimate certificate exists, it can only be issued by UHS staff through a real consultation — please book an appointment (web booking / call 2549 4686 / walk in) and discuss with the doctor.
 
@@ -360,7 +360,7 @@ KB.forEach(e=>{
 });
 
 /* greeting */
-addMsg(`Hi! I'm <b>Enrichment Pal</b> 🖋️ — your UHS clinical-services assistant (student project for AILT9019, not an official HKU service).
+addMsg(`Hi! I'm <b>Medipal</b> 🖋️ — your UHS clinical-services assistant (student project for AILT9019, not an official HKU service).
 
 I answer <b>only from a fixed corpus</b> of 8 official HKU UHS pages (left panel). Each answer shows its <b>source + retrieval date</b> and the <b>top-k retrieved passages</b> used — full transparency, no live web, no guessing.
 
