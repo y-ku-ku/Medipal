@@ -1,2 +1,4 @@
 corpus_extract.txt
 .workbuddy/
+.playwright-cli/
+form2.yaml
