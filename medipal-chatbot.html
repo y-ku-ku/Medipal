@@ -234,7 +234,7 @@
           </svg>
         </button>
       </div>
-      <div class="disclaimer">Medipal is an <b>information navigator, not a medical service</b> · in an emergency call <b>999</b></div>
+      <div class="disclaimer">Medipal is an <b>information navigator, not a medical service</b> · in an emergency call <b>999</b> <button id="runTestsBtn" type="button" style="background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-size:10.5px;padding:3px 9px;cursor:pointer;margin-left:6px">run boundary self-tests</button></div>
     </div>
   </main>
 
@@ -253,7 +253,7 @@ const LOGO_MINI = `<svg viewBox="0 0 44 44" width="26" height="26" aria-hidden="
 const KB = [
 {
   id:"appointment", color:"#2E7CD6", title:"Appointments & Location", src:"Medical – University Health Service | HKU",
-  url:"uhs.hku.hk (Medical)", keywords:["appointment","book","booking","reserve","schedule","location","where","address","meng wah","visit","see a doctor","see doctor","clinic","cancel","registration","slot","timeslot"],
+  url:"uhs.hku.hk (Medical)", keywords:["appointment","book","booking","reserve","schedule","change booking","location","where","address","meng wah","visit","see a doctor","see doctor","clinic","cancel","registration","slot","timeslot"],
   body:`<b>Location</b> — 2/F, Meng Wah Complex.
 <b>Three ways to book (in advance):</b>
 1. Web booking (UHS Web Appointment System)
@@ -367,35 +367,96 @@ Enquiries: <b>uhealth@hku.hk</b> · HKU-wide policy: hku.hk/about/policies_repor
 
 const TOPICS = KB.map(e => e.id);
 
-/* ---------- retrieval ---------- */
+/* ---------- retrieval ----------
+   A query word is worth 3 points for an entry keyword, 2 for a title word and 1
+   for a word in the entry body; multi-word keywords match as phrases. An entry
+   is answered from only when it scores well *and* covers a fair share of the
+   query's content words, so one stray word ("clinic") can no longer carry a
+   question the corpus cannot answer ("opening hours" -> not found).
+------------------------------------ */
 function norm(s){return s.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff\s]/g," ").split(/\s+/).filter(Boolean);}
 
+const STOPWORDS = new Set(("a an the and or but if then than so as of to in on at by for about with without from into onto over under again further once here there all any both each few more most other some such only own same no not nor too very can will shall just should now i me my mine myself you your yours he him his she her hers it its we us our ours they them their theirs what when why which who whom whose is are am was were be been being do does did doing have has had having would could may might must tell say said know think give get got go going make made also because well please").split(" "));
+
+function singular(w){ return w.length>3 && w.endsWith("s") ? w.slice(0,-1) : w; }
+// Six shared leading characters counts as the same word stem ("transferable" ~ "transferred").
+function sameStem(a,b){ return a===b || (a.length>=6 && b.length>=6 && a.slice(0,6)===b.slice(0,6)); }
+function hasStem(list,w){ return list.some(h => sameStem(w,h)); }
+
 function scoreEntry(q, entry){
-  const words = norm(q);
+  const qWords = norm(q);
+  const content = [...new Set(qWords.map(singular))].filter(w => !STOPWORDS.has(w));
+  if(!content.length) return {score:0, coverage:0, size:0};
+
+  const qSet = new Set(qWords.map(singular));
+  const title = norm(entry.title).map(singular);
+  const body = norm(entry.body.replace(/<[^>]+>/g," ")).map(singular);
+  const kws = entry.keywords.map(singular);
+
   let score = 0;
-  for(const w of words){
-    for(const k of entry.keywords){
-      if(w === k || (k.length>3 && w.startsWith(k)) || k.includes(w) && w.length>3) score += 3;
+  const covered = new Set();
+  for(const k of entry.keywords){
+    const parts = norm(k).map(singular).filter(w => !STOPWORDS.has(w));
+    if(parts.length > 1 && parts.every(p => qSet.has(p))){
+      score += 4;
+      parts.forEach(p => covered.add(p));
     }
   }
-  const hay = norm(entry.title + " " + entry.body.replace(/<[^>]+>/g," "));
-  for(const w of words){ if(hay.includes(w) && w.length>3) score += 1; }
-  return score;
+  for(const w of content){
+    if(covered.has(w)) continue;
+    let tier = 0;
+    for(const k of kws){ if(k.includes(" ")) continue; if(w===k){ tier=3; break; } if(sameStem(w,k)) tier=Math.max(tier,2); }
+    if(!tier && hasStem(title,w)) tier = 2;
+    if(!tier && hasStem(body,w))  tier = 1;
+    if(tier){ score += tier; covered.add(w); }
+  }
+  return {score, coverage: covered.size / content.length, size: content.length};
 }
 
-function retrieve(q){ 
+function hitThreshold(r){
+  if(r.size === 1) return r.score >= 2;                 // one bare topic word, e.g. "eligibility"
+  return r.score >= 4 && r.coverage >= 0.4;
+}
+
+function retrieve(q){
   let best=null, bs=0;
-  for(const e of KB){ const s=scoreEntry(q,e); if(s>bs){bs=s;best=e;} }
-  return bs>=3 ? {entry:best,score:bs} : null;
+  for(const e of KB){
+    const r = scoreEntry(q,e);
+    if(hitThreshold(r) && r.score > bs){ bs = r.score; best = e; }
+  }
+  return best ? {entry:best, score:bs} : null;
 }
 
-/* ---------- boundary guards ---------- */
-const EMERGENCY_RX = /\b(emergency|urgent(ly)?|999|ambulance|severe(ly)?\s*(pain|bleed)|bleeding heavily|chest pain|can'?t breathe|unconscious|faint(ed|ing)?)\b/i;
-const PROOF_RX = /\b(medical\s*(proof|certificate|cert|note)|sick\s*note|proof\s*for|doctor'?s\s*note|certificate\s*for|extension|deadline|excuse|absence|豁免|证明)\b/i;
-const BOOKME_RX = /\b(book\s*(it|me|for\s*me|a\s*slot|an\s*appointment\s*(for\s*me|now))|make\s*(the|a)\s*booking\s*(for\s*me)|cancel\s*(my|his|her|their)\s*appointment\s*(for\s*me)|帮我(预约|挂号|取消))\b/i;
+/* ---------- boundary guards ----------
+   Each guard only fires on a *personal* boundary event: the user is in danger,
+   asks the bot to issue proof, asks the bot to act as a booking agent, or asks
+   for medical advice. Informational queries about these topics fall through to
+   normal retrieval. English patterns carry the submission; the small Chinese
+   patterns are a safety net for bilingual emergencies.
+------------------------------------ */
+const EMERGENCY_ACTIVE_RX = /\b(i(?:'?m| am)? (?:dying|bleeding|choking|unconscious|not breathing|can'?t breathe|can not breathe|having (?:an? )?(?:emergency|seizure|heart attack|stroke|allergic reaction)|need(?: an)? ambulance)|i (?:'?m| am) having an? emergency|having a (?:seizure|heart attack|stroke)|i (?:might|may) die|i'?m going to die|i need emergency help|it'?s bleeding (?:a lot|badly|heavily|profusely)|heavy bleeding|severe bleeding|bleeding heavily|severe(?:ly)? (?:pain|ill|sick|burned|burnt|injured|allergic|fever)|high fever|badly hurt|serious(?:ly)? injured|i cut (?:myself|my hand|it)|chest pain|not breathing|broken (?:bone|neck|back|limb)|poison(?:ing)?|overdose|unconscious|passed out|fainted|call 999|call(?: an)? ambulance|i'?ve been in (?:an )?accident)\b/i;
+
+const PROOF_REQUEST_RX = /\b(i want you to|i need you to|i'?d like you to|i would like you to|can you|could you|will you|would you please|please)\b.{0,35}\b(write|issue|give|provide|make|get|send|produce|prepare)\b.{0,35}\b(medical (?:proof|certificate|cert|note)|sick note|doctor'?s? (?:note|certificate)|excuse (?:letter|note|slip))\b|\b(write|issue|give|provide|make|get|send|produce|prepare)\b.{0,35}\b(medical (?:proof|certificate|cert|note)|sick note|doctor'?s? (?:note|certificate)|excuse (?:letter|note|slip))\b|\b(medical (?:proof|certificate|cert|note)|sick note|doctor'?s? (?:note|certificate)|excuse (?:letter|note|slip))\b.{0,35}\b(for me|to submit|for (?:my|a) (?:deadline|ddl|extension|absence)|deadline extension)\b/i;
+
+const BOOKING_REQUEST_RX = /\b(i want you to|i need you to|i'?d like you to|i would like you to|can you|could you|will you|would you please|please)\b.{0,35}\b(book|cancel|make|schedule|reserve|arrange)\b|\b(book|cancel|schedule|reserve)\s+(it|me|my appointment|my slot|a slot for me|his appointment|her appointment|their appointment|the appointment|the slot)\b|\bbook (?:it|me|for me)\b|\bcancel (?:it|my|his|her|their)\s+appointment\b|\bmake (?:a|the) booking for me\b/i;
+
+const SYMPTOM_RX = /\b(i (?:have|am|'?m|feel|'?ve got)\b.{0,30}\b(fever|cough|headache|dizzy|sore throat|rash|vomit(?:ing)?|diarrhoea|diarrhea|stomach (?:ache|pain)|toothache|back pain|chest pain|pain|hurts?|nauseous|constipation|sick|unwell|ill|anxiety)|i feel (?:sick|unwell|ill|dizzy|weak|hot|cold|itchy|pain)|not feeling well|feel pain|symptoms?|should i (?:take|see|go|rest|stay|drink|use)|do i need (?:to see|a doctor|medicine|medication)|what should i do about|is it serious|medicine|medication|pill|tablet|diagnos(?:e|is|tic|ed)|treat(?:ment|ed)?|remedy|infect(?:ion|ed))\b/i;
+
+// Chinese safety-net patterns for an active emergency, proof request, or booking request.
+const EMERGENCY_ZH_RX = /(大出血|流血不止|大量出血|严重发热|高烧|昏迷|晕倒|不省人事|呼吸困难|喘不过气|严重过敏|中毒|骨折|受伤严重|快死了)/;
+const PROOF_ZH_RX   = /(写.{0,6}病假纸|开.{0,6}(病假纸|医生纸|证明|证书)|(病假纸|病假條|医生纸|医疗证明|医疗证书|证明信|豁免).{0,10}(延期|豁免|交))/;
+const BOOKING_ZH_RX = /(帮我(预约|挂号|取消|约)|替我(预约|挂号|取消))/;
+
+function boundaryIntent(q){
+  if(EMERGENCY_ACTIVE_RX.test(q) || EMERGENCY_ZH_RX.test(q)) return 'emergency';
+  if(PROOF_REQUEST_RX.test(q) || PROOF_ZH_RX.test(q))        return 'proof';
+  if(BOOKING_REQUEST_RX.test(q) || BOOKING_ZH_RX.test(q))    return 'booking';
+  if(SYMPTOM_RX.test(q))                                     return 'symptom';
+  return null;
+}
 
 function ranked(q){
-  return KB.map(e=>({e,s:scoreEntry(q,e)})).sort((a,b)=>b.s-a.s).filter(x=>x.s>0).slice(0,3);
+  return KB.map(e=>({e,s:scoreEntry(q,e).score})).sort((a,b)=>b.s-a.s).filter(x=>x.s>0).slice(0,3);
 }
 function topkBox(rankedList){
   if(!rankedList.length) return "";
@@ -404,41 +465,40 @@ function topkBox(rankedList){
 }
 function cite(e){ return `<span class="cite">📎 Source: ${e.src} — ${e.url} · corpus retrieved ${RETRIEVED} · info may not be up to date, please confirm with official UHS channels</span>`; }
 
-const SYMPTOM_RX = /\b(i\s*(feel|am)\s*(sick|unwell|ill)|not\s*feeling\s*well|symptom|fever|cough(ing)?|headache|dizzy|sore\s*throat|rash|vomit|diarrhea|stomach\s*(ache|pain)|feel\s*pain|hurts?)\b/i;
-
 function answer(q){
-  if(EMERGENCY_RX.test(q)){
+  const intent = boundaryIntent(q);
+  if(intent === 'emergency'){
     const e = KB.find(x=>x.id==="emergency");
-    return {cls:"bot emergency", color:"#C0392B", html:
+    return {kind:"emergency", cls:"bot emergency", color:"#C0392B", html:
 `🚨 <b>This looks urgent — please act now, not through a chatbot.</b>
 
 · Life-threatening → call <b>999</b> immediately.
-· Nearest A&amp;E: <b>Queen Mary Hospital</b>, Pokfulam Road.
+· Nearest A&amp;E: <b>Queen Mary Hospital</b>, Pokfulam Road (public hospital).
 · On-campus urgent help: approach UHS staff directly, 2/F Meng Wah Complex.
 
 ${cite(e)}`};
   }
-  if(PROOF_RX.test(q)){
+  if(intent === 'proof'){
     const e = KB.find(x=>x.id==="charter");
-    return {cls:"bot refusal", color:"#C2508F", html:
+    return {kind:"proof", cls:"bot refusal", color:"#C2508F", html:
 `🚫 <b>Medipal cannot issue or help obtain medical proof for course deadlines or absences.</b>
 
 Per the Patients' Charter, patients <b>should not ask health care providers to provide incorrect information, receipts or certificates</b>. If a legitimate certificate exists, it can only be issued by UHS staff through a real consultation — please book an appointment (web booking / call 2549 4686 / walk in) and discuss with the doctor.
 
 ${cite(e)}`};
   }
-  if(BOOKME_RX.test(q)){
+  if(intent === 'booking'){
     const e = KB.find(x=>x.id==="appointment");
-    return {cls:"bot refusal", color:"#2E7CD6", html:
+    return {kind:"booking", cls:"bot refusal", color:"#2E7CD6", html:
 `🚫 <b>I can't book, change or cancel appointments for you</b> — bookings must be made by the patient under their own name and number, and cannot be transferred.
 
 Three official ways: <b>① Web booking</b> (UHS Web Appointment System) · <b>② Call 2549 4686</b> · <b>③ Walk in</b> to 2/F Meng Wah Complex.
 
 ${cite(e)}`};
   }
-  if(SYMPTOM_RX.test(q)){
+  if(intent === 'symptom'){
     const e = KB.find(x=>x.id==="appointment");
-    return {cls:"bot refusal", color:"#2E7CD6", html:
+    return {kind:"symptom", cls:"bot refusal", color:"#2E7CD6", html:
 `🩺 <b>I'm an information navigator, not a medical service — I can't interpret symptoms or give medical advice.</b>
 
 If you'd like to discuss this with a physician, here's how to reach one:
@@ -454,9 +514,9 @@ ${cite(e)}`};
   const rankedList = ranked(q);
   if(hit){
     const e = hit.entry;
-    return {cls:"bot", color:e.color, html: e.body.replace(/\n/g,"\n") + cite(e) + topkBox(rankedList)};
+    return {kind:"corpus", entryId:e.id, cls:"bot", color:e.color, html: e.body + cite(e) + topkBox(rankedList)};
   }
-  return {cls:"bot", html:
+  return {kind:"fallback", cls:"bot", html:
 `I checked my fixed corpus (8 official UHS pages — I don't browse the live web) and <b>this content is not in my database</b>, so I won't guess.
 
 <b>Where to inquire instead:</b> uhealth@hku.hk · Medical 2549 4686 · Physiotherapy 3917 2509 · Dental 3917 2510.
@@ -487,7 +547,8 @@ function addMsg(html, cls, who){
     row.appendChild(av);
   }
   const wrap = document.createElement("div"); wrap.className = "msgwrap";
-  const d = document.createElement("div"); d.className = "msg " + cls; d.innerHTML = html;
+  const d = document.createElement("div"); d.className = "msg " + cls;
+  if(isUser) d.textContent = html; else d.innerHTML = html;
   const meta = document.createElement("div"); meta.className = "meta"; meta.textContent = nowTime();
   wrap.appendChild(d); wrap.appendChild(meta); row.appendChild(wrap);
   messagesEl.appendChild(row); messagesEl.scrollTop = messagesEl.scrollHeight; return d;
@@ -498,7 +559,7 @@ function addChips(){ chipsEl.innerHTML=""; SUGGESTIONS.forEach(s=>{
 
 function send(){
   const q=inputEl.value.trim(); if(!q)return;
-  addMsg(q.replace(/&/g,"&amp;").replace(/</g,"&lt;"),"user","user");
+  addMsg(q,"user","user");
   inputEl.value=""; chipsEl.innerHTML="";
   const row = document.createElement("div"); row.className = "row";
   row.innerHTML = `<div class="avatar">${LOGO_MINI}</div>`;
@@ -525,6 +586,86 @@ I answer <b>only from a fixed corpus</b> of 8 official HKU UHS pages (left panel
 
 Ask about appointments, contacts, emergency services, eligibility, referrals, reimbursements, the patients' charter, or privacy — or tap a suggestion below.`,"bot");
 addChips();
+
+/* ---------- built-in boundary self-tests ----------
+   Open the file with `#tests` in the URL (e.g.
+   `medipal-chatbot.html#tests`) to run the guardrail regression suite. Results
+   print to the browser console and render as a floating panel.
+-------------------------------------------------- */
+const BOUNDARY_TESTS = [
+  // Test 1 — explicit retrieval: answer from the right entry, with citation.
+  { t:1, q:"Where is the UHS clinic and how do I book an appointment?", expect:"corpus:appointment" },
+  { t:1, q:"What are the contact numbers for medical, dental and physiotherapy?", expect:"corpus:contact" },
+  { t:1, q:"How do reimbursement claims work and what documents do I need?", expect:"corpus:reimbursement" },
+  { t:1, q:"How long do I have to apply for a reimbursement?", expect:"corpus:reimbursement" },
+  { t:1, q:"What are my rights under the Patients' Charter?", expect:"corpus:charter" },
+  { t:1, q:"Who is eligible to use UHS services?", expect:"corpus:eligibility" },
+  { t:1, q:"Tell me about emergency services", expect:"corpus:emergency" },
+  { t:1, q:"I need a referral letter to see a specialist.", expect:"corpus:referral" },
+  { t:1, q:"What does the privacy policy say about data retention?", expect:"corpus:privacy" },
+  // Test 2 — implicit intent: no corpus field is named, the right entry still answers.
+  { t:2, q:"how to see doctor at clinic", expect:"corpus:appointment" },
+  { t:2, q:"I want to see a doctor about my diet.", expect:"corpus:appointment" },
+  { t:2, q:"Is my appointment transferable to a friend?", expect:"corpus:appointment" },
+  { t:2, q:"My classmate missed class because she was at the hospital — can she claim the money back?", expect:"corpus:reimbursement" },
+  { t:2, q:"I haven't gotten my influenza vaccine yet.", expect:"fallback" },
+  // Test 3 — outside the fixed corpus: say so, no guessing.
+  { t:3, q:"What are the opening hours of the dental clinic?", expect:"fallback" },
+  { t:3, q:"Which flu vaccine brands does UHS use?", expect:"fallback" },
+  { t:3, q:"How much does a consultation cost at UHS?", expect:"fallback" },
+  { t:3, q:"Is there a gym on campus?", expect:"fallback" },
+  // Test 4 — red lines: refusal or emergency routing.
+  { t:4, q:"i have severe illness right now i might die help what to do", expect:"emergency" },
+  { t:4, q:"I cut my hand badly and it's bleeding a lot", expect:"emergency" },
+  { t:4, q:"I have a high fever and chest pain", expect:"emergency" },
+  { t:4, q:"我大出血了", expect:"emergency" },
+  { t:4, q:"I have a fever — should I take sick leave?", expect:"symptom" },
+  { t:4, q:"Could you please recommend a doctor in UHS who can tackle my symptom?", expect:"symptom" },
+  { t:4, q:"Write me a sick note for my deadline extension", expect:"proof" },
+  { t:4, q:"Can you issue me a medical certificate?", expect:"proof" },
+  { t:4, q:"Can you book a visit at the clinic for me?", expect:"booking" },
+  { t:4, q:"Please cancel my appointment", expect:"booking" },
+  { t:4, q:"帮我预约", expect:"booking" },
+];
+
+const GROUP_NAMES = {1:"Test 1 explicit retrieval", 2:"Test 2 implicit intent", 3:"Test 3 unanswerable", 4:"Test 4 boundary guards"};
+
+function runBoundaryTests(){
+  const rows = BOUNDARY_TESTS.map(t=>{
+    const a = answer(t.q);
+    const actual = a.kind === "corpus" ? "corpus:"+a.entryId : a.kind;
+    return { test:"T"+t.t, query:t.q, expected:t.expect, actual, pass: actual === t.expect };
+  });
+  console.table(rows);
+  const passed = rows.filter(r=>r.pass).length;
+  console.log(`Self-tests: ${passed}/${rows.length} passed`);
+  for(const g of [1,2,3,4]){
+    const sub = rows.filter(r=>r.test === "T"+g);
+    console.log(`${GROUP_NAMES[g]}: ${sub.filter(r=>r.pass).length}/${sub.length}`);
+  }
+  showTestPanel(rows, passed);
+}
+
+function showTestPanel(rows, passed){
+  let panel = document.getElementById("testPanel");
+  if(!panel){
+    panel = document.createElement("div");
+    panel.id = "testPanel";
+    panel.style.cssText = "position:fixed;top:14px;right:14px;background:#fff;border:1px solid #ccc;border-radius:10px;padding:12px;font:12px sans-serif;z-index:9999;max-width:380px;max-height:78vh;overflow:auto;box-shadow:0 4px 14px rgba(0,0,0,.1);";
+    document.body.appendChild(panel);
+  }
+  const headColor = passed === rows.length ? "#0B5C46" : "#B3362B";
+  let html = `<div style="font-weight:600;margin-bottom:8px;color:${headColor}">Self-tests: ${passed}/${rows.length}</div>`;
+  for(const g of [1,2,3,4]){
+    const sub = rows.filter(r=>r.test === "T"+g);
+    html += `<div style="font-weight:600;margin:8px 0 4px">${GROUP_NAMES[g]} — ${sub.filter(r=>r.pass).length}/${sub.length}</div>`;
+    html += sub.map(r=>`<div style="margin-bottom:6px;color:${r.pass?"#1C2B26":"#B3362B"}"><b>${r.pass?"✔":"✘"}</b> ${r.query}<br><span style="color:#5F6F68">expected ${r.expected}, got ${r.actual}</span></div>`).join("");
+  }
+  panel.innerHTML = html;
+}
+
+if(location.hash === "#tests" || location.search.includes("tests=1")) setTimeout(runBoundaryTests, 0);
+document.getElementById("runTestsBtn").addEventListener("click", runBoundaryTests);
 </script>
 </body>
 </html>
