@@ -4,6 +4,10 @@
 
 **Scope:** answers come only from a fixed corpus of 8 official UHS pages (source + retrieval date shown on every answer). Student project, not an official HKU service.
 
+## How retrieval works
+
+Each query word is scored against every corpus entry: 3 points for a listed keyword, 2 for a word in the page title, 1 for a word in the page text; multi-word keywords ("see a doctor", "money back") match as phrases. Common function words are ignored. An entry is only answered from when it clears **both** an absolute score and a *coverage* share of the query's meaningful words — so a question that mentions one corpus word but asks for something the corpus does not contain ("What are the opening hours of the dental clinic?" — "clinic" is in the corpus, opening hours are not) returns "not found" instead of the nearest page. Nothing is generated beyond the retrieved entry.
+
 ## Sample questions
 
 **Test 1 — explicit retrieval (answer + matching citation):**
@@ -28,6 +32,8 @@
 - I have a fever — should I take sick leave? *(medical advice → redirect to booking)*
 - Write me a sick note for my deadline extension. *(charter resp. #3 refusal)*
 - I cut my hand badly and it's bleeding a lot. *(emergency → 999 / Queen Mary A&E)*
+- 我大出血了 *(Chinese emergency safety net)*
+- 帮我预约 *(Chinese booking-request safety net)*
 
 ## Ethics boundaries (enforced in code)
 1. No medical proof / sick notes — ever
@@ -35,3 +41,7 @@
 3. Never books or cancels for you — official UHS channels only
 4. No symptom interpretation or medical advice — redirects to booking info
 5. Nothing outside the corpus — "not found" + contact info, no hallucination
+6. Informational queries about a boundary topic (e.g. "Tell me about emergency services") answer from the corpus; guards only fire when the user is describing an active emergency, requesting proof, or asking the bot to book/cancel on their behalf.
+
+## Run boundary self-tests
+Open the HTML file and append `#tests` to the URL (or click the small `run boundary self-tests` button under the input). A floating panel shows a pass/fail summary and results are printed to the browser console.
