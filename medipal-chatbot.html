@@ -539,19 +539,23 @@ const SUGGESTIONS = [
 
 function nowTime(){ return new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}); }
 
-function addMsg(html, cls, who){
+function addMsg(html, cls, who, intoRow){
   const isUser = who === "user";
-  const row = document.createElement("div"); row.className = "row" + (isUser ? " user" : "");
-  if(!isUser){
-    const av = document.createElement("div"); av.className = "avatar"; av.innerHTML = LOGO_MINI;
-    row.appendChild(av);
+  const row = intoRow || document.createElement("div");
+  if(!intoRow){
+    row.className = "row" + (isUser ? " user" : "");
+    if(!isUser){
+      const av = document.createElement("div"); av.className = "avatar"; av.innerHTML = LOGO_MINI;
+      row.appendChild(av);
+    }
   }
   const wrap = document.createElement("div"); wrap.className = "msgwrap";
   const d = document.createElement("div"); d.className = "msg " + cls;
   if(isUser) d.textContent = html; else d.innerHTML = html;
   const meta = document.createElement("div"); meta.className = "meta"; meta.textContent = nowTime();
   wrap.appendChild(d); wrap.appendChild(meta); row.appendChild(wrap);
-  messagesEl.appendChild(row); messagesEl.scrollTop = messagesEl.scrollHeight; return d;
+  if(!intoRow) messagesEl.appendChild(row);
+  messagesEl.scrollTop = messagesEl.scrollHeight; return d;
 }
 function addChips(){ chipsEl.innerHTML=""; SUGGESTIONS.forEach(s=>{
   const c=document.createElement("div"); c.className="chip"; c.textContent=s;
@@ -565,7 +569,7 @@ function send(){
   row.innerHTML = `<div class="avatar">${LOGO_MINI}</div>`;
   const t = document.createElement("div"); t.className = "typing"; t.innerHTML = "<span></span><span></span><span></span>";
   row.appendChild(t); messagesEl.appendChild(row); messagesEl.scrollTop = messagesEl.scrollHeight;
-  setTimeout(()=>{ row.remove(); const a=answer(q); const el=addMsg(a.html,a.cls); if(a.color){el.style.borderLeft="4px solid "+a.color;} addChips(); }, 600+Math.random()*400);
+  setTimeout(()=>{ t.remove(); const a=answer(q); const el=addMsg(a.html,a.cls,"bot",row); if(a.color){el.style.borderLeft="4px solid "+a.color;} addChips(); }, 600+Math.random()*400);
 }
 inputEl.addEventListener("keydown",e=>{ if(e.key==="Enter")send(); });
 
@@ -623,15 +627,22 @@ const BOUNDARY_TESTS = [
   { t:4, q:"Could you please recommend a doctor in UHS who can tackle my symptom?", expect:"symptom" },
   { t:4, q:"Write me a sick note for my deadline extension", expect:"proof" },
   { t:4, q:"Can you issue me a medical certificate?", expect:"proof" },
+  { t:4, q:"Can I get a medical certificate for a deadline extension?", expect:"proof" },
+  { t:4, q:"I have a severe toothache — what should I do?", expect:"symptom" },
   { t:4, q:"Can you book a visit at the clinic for me?", expect:"booking" },
   { t:4, q:"Please cancel my appointment", expect:"booking" },
   { t:4, q:"帮我预约", expect:"booking" },
 ];
 
-const GROUP_NAMES = {1:"Test 1 explicit retrieval", 2:"Test 2 implicit intent", 3:"Test 3 unanswerable", 4:"Test 4 boundary guards"};
+const GROUP_NAMES = {1:"Test 1 explicit retrieval", 2:"Test 2 implicit intent", 3:"Test 3 unanswerable", 4:"Test 4 boundary guards", 5:"Sidebar click-through"};
+
+// Every corpus page is clickable in the sidebar; each click must reach its own entry.
+const SIDEBAR_TESTS = KB.map(e => ({ t:5, q:"Tell me about "+e.title.toLowerCase(), expect:"corpus:"+e.id }));
+const ALL_TESTS = BOUNDARY_TESTS.concat(SIDEBAR_TESTS);
+const GROUPS = [1,2,3,4,5];
 
 function runBoundaryTests(){
-  const rows = BOUNDARY_TESTS.map(t=>{
+  const rows = ALL_TESTS.map(t=>{
     const a = answer(t.q);
     const actual = a.kind === "corpus" ? "corpus:"+a.entryId : a.kind;
     return { test:"T"+t.t, query:t.q, expected:t.expect, actual, pass: actual === t.expect };
@@ -639,7 +650,7 @@ function runBoundaryTests(){
   console.table(rows);
   const passed = rows.filter(r=>r.pass).length;
   console.log(`Self-tests: ${passed}/${rows.length} passed`);
-  for(const g of [1,2,3,4]){
+  for(const g of GROUPS){
     const sub = rows.filter(r=>r.test === "T"+g);
     console.log(`${GROUP_NAMES[g]}: ${sub.filter(r=>r.pass).length}/${sub.length}`);
   }
@@ -656,7 +667,7 @@ function showTestPanel(rows, passed){
   }
   const headColor = passed === rows.length ? "#0B5C46" : "#B3362B";
   let html = `<div style="font-weight:600;margin-bottom:8px;color:${headColor}">Self-tests: ${passed}/${rows.length}</div>`;
-  for(const g of [1,2,3,4]){
+  for(const g of GROUPS){
     const sub = rows.filter(r=>r.test === "T"+g);
     html += `<div style="font-weight:600;margin:8px 0 4px">${GROUP_NAMES[g]} — ${sub.filter(r=>r.pass).length}/${sub.length}</div>`;
     html += sub.map(r=>`<div style="margin-bottom:6px;color:${r.pass?"#1C2B26":"#B3362B"}"><b>${r.pass?"✔":"✘"}</b> ${r.query}<br><span style="color:#5F6F68">expected ${r.expected}, got ${r.actual}</span></div>`).join("");

@@ -14,24 +14,35 @@ Each query word is scored against every corpus entry: 3 points for a listed keyw
 - Where is the UHS clinic and how do I book an appointment?
 - What are the contact numbers for medical, dental and physiotherapy?
 - How do reimbursement claims work and what documents do I need?
-- What are my rights under the Patients' Charter?
 - How long do I have to apply for a reimbursement?
+- What are my rights under the Patients' Charter?
+- Who is eligible to use UHS services?
+- Tell me about emergency services *(informational, not an emergency)*
+- I need a referral letter to see a specialist.
+- What does the privacy policy say about data retention?
 
 **Test 2 — implicit input (fields identified for you):**
-- I haven't gotten my influenza vaccine yet. → not in corpus → unanswerable flow
+- how to see doctor at clinic → appointment info
 - I want to see a doctor about my diet. → appointment info
+- Is my appointment transferable to a friend? → appointment rules
 - My classmate missed class because she was at the hospital — can she claim the money back? → reimbursement rules
+- I haven't gotten my influenza vaccine yet. → not in corpus → unanswerable flow
 
 **Test 3 — unanswerable, fails safely (not found + contact link):**
-- Could you please recommend a doctor in UHS who can tackle my symptom?
 - What are the opening hours of the dental clinic? *(hours not in corpus)*
-- Which flu vaccine brands does UHS use?
+- Which flu vaccine brands does UHS use? *(brands not in corpus)*
+- How much does a consultation cost at UHS? *(fees not in corpus)*
+- Is there a gym on campus? *(outside UHS corpus entirely)*
+- Could you please recommend a doctor in UHS who can tackle my symptom? *(answered as a boundary case — no symptom advice)*
 
 **Test 4 — boundary limits (refuse + link + mitigation):**
 - Can you book a visit at the clinic for me?
+- Please cancel my appointment.
 - I have a fever — should I take sick leave? *(medical advice → redirect to booking)*
 - Write me a sick note for my deadline extension. *(charter resp. #3 refusal)*
+- Can I get a medical certificate for a deadline extension?
 - I cut my hand badly and it's bleeding a lot. *(emergency → 999 / Queen Mary A&E)*
+- i have severe illness right now i might die help what to do
 - 我大出血了 *(Chinese emergency safety net)*
 - 帮我预约 *(Chinese booking-request safety net)*
 
@@ -43,5 +54,8 @@ Each query word is scored against every corpus entry: 3 points for a listed keyw
 5. Nothing outside the corpus — "not found" + contact info, no hallucination
 6. Informational queries about a boundary topic (e.g. "Tell me about emergency services") answer from the corpus; guards only fire when the user is describing an active emergency, requesting proof, or asking the bot to book/cancel on their behalf.
 
-## Run boundary self-tests
-Open the HTML file and append `#tests` to the URL (or click the small `run boundary self-tests` button under the input). A floating panel shows a pass/fail summary and results are printed to the browser console.
+## Run self-tests
+
+Open the HTML file and click the small `run boundary self-tests` button under the input box (or append `#tests` to the URL). A floating panel reports 39 regression cases — the four sample-question sets above plus one case per sidebar page — with a per-group pass count, and the same table is printed to the browser console (`console.table`). Current status: **39/39**, per group 9/9 (explicit), 5/5 (implicit), 4/4 (unanswerable), 13/13 (boundaries), 8/8 (sidebar click-through).
+
+The retrieval scoring and the guard patterns are the two things the tests protect: changing either should be re-checked with this suite before committing.
