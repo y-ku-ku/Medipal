@@ -54,8 +54,26 @@ Each query word is scored against every corpus entry: 3 points for a listed keyw
 5. Nothing outside the corpus — "not found" + contact info, no hallucination
 6. Informational queries about a boundary topic (e.g. "Tell me about emergency services") answer from the corpus; guards only fire when the user is describing an active emergency, requesting proof, or asking the bot to book/cancel on their behalf.
 
+## Accessibility & keyboard use
+
+- The conversation is a live region (`role="log"`, `aria-live="polite"`), so answers and refusals are announced as they arrive; the typing indicator announces that an answer is being composed.
+- Everything actionable is a real `<button>` — the six suggested questions, all eight corpus pages in the sidebar, and send. The whole app is usable with Tab + Enter/Space alone, without a mouse.
+- The cited source is a clickable link (`rel="noopener noreferrer"`, new tab), not dead text.
+- Small print (timestamps, source line, sidebar subtitles) meets WCAG 2.1 AA contrast (≥4.5:1) on every surface it appears on; decorative emoji and the ✔/✘ test markers are `aria-hidden` so a screen reader does not read them as content.
+- `prefers-reduced-motion` disables the animations and transitions.
+- `<html lang="en">`, page landmarks (`header` / `aside` / `main`), labelled icons (`aria-hidden` on decorative SVGs, `aria-label` on the logo and send button).
+- Nothing is stored and no login exists, so assistive technology never sees personal data — the same PDPO claim the proposal makes.
+
 ## Run self-tests
 
-Open the HTML file and click the small `run boundary self-tests` button under the input box (or append `#tests` to the URL). A floating panel reports 39 regression cases — the four sample-question sets above plus one case per sidebar page — with a per-group pass count, and the same table is printed to the browser console (`console.table`). Current status: **39/39**, per group 9/9 (explicit), 5/5 (implicit), 4/4 (unanswerable), 13/13 (boundaries), 8/8 (sidebar click-through).
+Open the HTML file and click the `run self-tests` button under the input box (or append `#tests` to the URL). The suite is the 56 cases in `SELF_TESTS` + one click-through per sidebar page; the samples above are the demo subset.
+
+Each case is checked on three axes, not just routing:
+
+1. **route** — the reply comes from the expected corpus entry, or is the expected refusal / "not found";
+2. **grounding** — a corpus answer is verbatim corpus text, with the source name, URL and retrieval date attached (nothing is composed);
+3. **next step** — every reply names an official channel (source URL, a UHS phone line, `uhealth@hku.hk`, or 999 / Queen Mary for emergencies).
+
+Group sizes and thresholds follow the revised proposal — Test 1 ≥20 cases at ≥90%, Test 2 ≥10 at ≥90%, Test 3 ≥5 and Test 4 100% — and the panel prints ACCEPT/REJECT per group against those numbers. Current status: **56/56**, 20/20 explicit, 10/10 implicit, 5/5 unanswerable, 13/13 boundaries, 8/8 sidebar.
 
 The retrieval scoring and the guard patterns are the two things the tests protect: changing either should be re-checked with this suite before committing.
