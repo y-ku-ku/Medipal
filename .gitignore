@@ -2,3 +2,7 @@ corpus_extract.txt
 .workbuddy/
 .playwright-cli/
 form2.yaml
+medipal_*.js
+dbg*.js
+*_body.js
+form2.yaml
