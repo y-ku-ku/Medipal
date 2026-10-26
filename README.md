@@ -2,7 +2,24 @@
 
 **Setup:** Download this project repository, then open the `medipal-chatbot.html` file. It will open a web page, where you can input your queries and interact with Medipal. No login, no API key — everything runs locally in the page. Nothing you type is stored.
 
-**Scope:** answers come only from a fixed corpus of 8 official UHS pages (source + retrieval date shown on every answer). Student project, not an official HKU service.
+**Scope:** answers come only from a fixed corpus of 8 entries taken from 7 official UHS pages (source + retrieval date shown on every answer). Student project, not an official HKU service.
+
+## What is in the corpus
+
+The whole knowledge base is these eight entries, all retrieved 20 Oct 2026 and all in the HTML — nothing else is answerable. The middle column is the source label printed under every answer; two entries share one page (the UHS student-benefits page covers both referrals and reimbursements), which is why the corpus is 8 entries from 7 pages.
+
+| Sidebar entry | What it answers | Source label in the citation |
+|---|---|---|
+| Appointments & Location | how to book, where the clinic is, changes and cancellation rules | Medical – University Health Service \| HKU |
+| Contact Directory | medical / dental / physiotherapy phone lines and email | UHS Web Appointment System \| HKU |
+| Emergency Services | what to do in an emergency, dental emergencies | Emergency Services – University Health Service \| HKU |
+| Eligibility | who may use UHS, expiry after graduation, dependants | Eligibility to Use UHS Services \| HKU |
+| Student Benefits — Referrals | referral letters and specialist access | For HKU Students – UHS \| HKU |
+| Student Benefits — Reimbursements | claim window, receipts, hospitalisation claims | For HKU Students – UHS \| HKU |
+| Patients' Charter | rights, responsibilities, complaints, records | Patients' Charter – UHS \| HKU |
+| Privacy Policy | PDPO handling, retention, access and correction | Privacy Policy Statement – UHS \| HKU |
+
+Not in the corpus, and therefore always answered with "not found" plus official contacts rather than a guess: opening hours, fees and charges, vaccination brands and availability, and anything outside UHS (gym, libraries, transport).
 
 ## How retrieval works
 
@@ -57,7 +74,7 @@ Each query word is scored against every corpus entry: 3 points for a listed keyw
 ## Accessibility & keyboard use
 
 - The conversation is a live region (`role="log"`, `aria-live="polite"`), so answers and refusals are announced as they arrive; the typing indicator announces that an answer is being composed.
-- Everything actionable is a real `<button>` — the six suggested questions, all eight corpus pages in the sidebar, and send. The whole app is usable with Tab + Enter/Space alone, without a mouse.
+- Everything actionable is a real `<button>` — the six suggested questions, all eight corpus entries in the sidebar, and send. The whole app is usable with Tab + Enter/Space alone, without a mouse.
 - The cited source is a clickable link (`rel="noopener noreferrer"`, new tab), not dead text.
 - Small print (timestamps, source line, sidebar subtitles) meets WCAG 2.1 AA contrast (≥4.5:1) on every surface it appears on; decorative emoji and the ✔/✘ test markers are `aria-hidden` so a screen reader does not read them as content.
 - `prefers-reduced-motion` disables the animations and transitions.

@@ -184,7 +184,7 @@
   </div>
   <div class="badges">
     <span class="badge">Student project · AILT9019</span>
-    <span class="badge"><span class="dot"></span>8 fixed sources · offline</span>
+    <span class="badge"><span class="dot"></span>7 official pages · offline</span>
   </div>
 </header>
 
@@ -193,7 +193,7 @@
   <aside class="sidebar">
     <div class="side-head">
       <h2>Fixed corpus</h2>
-      <span class="count">8 sources</span>
+      <span class="count">8 entries</span>
     </div>
     <div class="qc-card">
       <div class="qc-head">
@@ -220,7 +220,7 @@
     <div class="stats-row">
       <div class="stat-card">
         <div class="stat-ico" style="background:#E8F3EE"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#0B5C46" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-        <div><div class="stat-num">8</div><div class="stat-lbl">official sources, fixed</div></div>
+        <div><div class="stat-num">7</div><div class="stat-lbl">official pages, fixed</div></div>
       </div>
       <div class="stat-card">
         <div class="stat-ico" style="background:#FCEDEB"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#B3362B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
@@ -531,7 +531,7 @@ ${cite(e)}`};
     return {kind:"corpus", entryId:e.id, cls:"bot", color:e.color, html: e.body + cite(e) + topkBox(rankedList)};
   }
   return {kind:"fallback", cls:"bot", html:
-`I checked my fixed corpus (8 official UHS pages — I don't browse the live web) and <b>this content is not in my database</b>, so I won't guess.
+`I checked my fixed corpus (7 official UHS pages, 8 entries — I don't browse the live web) and <b>this content is not in my database</b>, so I won't guess.
 
 <b>Where to inquire instead:</b> uhealth@hku.hk · Medical 2549 4686 · Physiotherapy 3917 2509 · Dental 3917 2510.
 Or try one of the topics I do cover: <b>appointments, contacts, emergency services, eligibility, referrals, reimbursements, patients' charter, privacy</b>.`};
@@ -603,7 +603,7 @@ KB.forEach((e,i)=>{
 /* greeting */
 addMsg(`Hi! I'm <b>Medipal</b> — your UHS clinical-services assistant (student project for AILT9019, not an official HKU service).
 
-I answer <b>only from a fixed corpus</b> of 8 official HKU UHS pages (left panel). Each answer shows its <b>source + retrieval date</b> and the <b>top-k retrieved passages</b> used — full transparency, no live web, no guessing.
+I answer <b>only from a fixed corpus</b> of 8 entries taken from 7 official HKU UHS pages (left panel). Each answer shows its <b>source + retrieval date</b> and the <b>top-k retrieved passages</b> used — full transparency, no live web, no guessing.
 
 Ask about appointments, contacts, emergency services, eligibility, referrals, reimbursements, the patients' charter, or privacy — or tap a suggestion below.`,"bot");
 addChips();
