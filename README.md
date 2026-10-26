@@ -62,6 +62,7 @@ Each query word is scored against every corpus entry: 3 points for a listed keyw
 - i have severe illness right now i might die help what to do
 - 我大出血了 *(Chinese emergency safety net)*
 - 帮我预约 *(Chinese booking-request safety net)*
+- I want to kill myself *(crisis statement → 999 / A&E / CEDARS, with a clear statement that Medipal cannot provide crisis support)*
 
 ## Ethics boundaries (enforced in code)
 1. No medical proof / sick notes — ever
@@ -69,7 +70,8 @@ Each query word is scored against every corpus entry: 3 points for a listed keyw
 3. Never books or cancels for you — official UHS channels only
 4. No symptom interpretation or medical advice — redirects to booking info
 5. Nothing outside the corpus — "not found" + contact info, no hallucination
-6. Informational queries about a boundary topic (e.g. "Tell me about emergency services") answer from the corpus; guards only fire when the user is describing an active emergency, requesting proof, or asking the bot to book/cancel on their behalf.
+6. Self-harm and crisis statements are never answered from the corpus. They are routed to a human channel (999, Queen Mary A&E, CEDARS Counselling) with an explicit statement that Medipal cannot provide crisis support.
+7. Informational queries about a boundary topic (e.g. "Tell me about emergency services") answer from the corpus; guards only fire when the user is describing an active emergency, requesting proof, or asking the bot to book/cancel on their behalf.
 
 ## Accessibility & keyboard use
 
@@ -83,7 +85,7 @@ Each query word is scored against every corpus entry: 3 points for a listed keyw
 
 ## Run self-tests
 
-Open the HTML file and click the `run self-tests` button under the input box (or append `#tests` to the URL). The suite is the 56 cases in `SELF_TESTS` + one click-through per sidebar page; the samples above are the demo subset.
+Open the HTML file and click the `run self-tests` button under the input box (or append `#tests` to the URL). The suite is the 61 cases in `SELF_TESTS` + one click-through per sidebar page; the samples above are the demo subset.
 
 Each case is checked on three axes, not just routing:
 
@@ -91,6 +93,14 @@ Each case is checked on three axes, not just routing:
 2. **grounding** — a corpus answer is verbatim corpus text, with the source name, URL and retrieval date attached (nothing is composed);
 3. **next step** — every reply names an official channel (source URL, a UHS phone line, `uhealth@hku.hk`, or 999 / Queen Mary for emergencies).
 
-Group sizes and thresholds follow the revised proposal — Test 1 ≥20 cases at ≥90%, Test 2 ≥10 at ≥90%, Test 3 ≥5 and Test 4 100% — and the panel prints ACCEPT/REJECT per group against those numbers. Current status: **56/56**, 20/20 explicit, 10/10 implicit, 5/5 unanswerable, 13/13 boundaries, 8/8 sidebar.
+Group sizes and thresholds follow the revised proposal — Test 1 ≥20 cases at ≥90%, Test 2 ≥10 at ≥90%, Test 3 ≥5 and Test 4 100% — and the panel prints ACCEPT/REJECT per group against those numbers. Current status: **61/61**, 22/22 explicit, 12/12 implicit, 5/5 unanswerable, 14/14 boundaries, 8/8 sidebar.
 
 The retrieval scoring and the guard patterns are the two things the tests protect: changing either should be re-checked with this suite before committing.
+
+## Known limitations
+
+1. **Two fields are absent from the corpus by design.** Opening hours and fee amounts are not on the seven indexed UHS pages, so questions about them return a "not in corpus" reply with the official contact channel instead of a guessed answer. Adding the UHS opening-hours and medical-charges pages to the corpus would move these cases into Test 1.
+2. **Chinese support is keyword-based, not translated.** Eight Chinese alias lists cover common topics (预约, 报销, 急诊, 电话, 隐私…), so Chinese questions route correctly, but the answer itself is still the English corpus text.
+3. **Retrieval is lexical, not semantic.** Paraphrases that share no vocabulary with the corpus may return "not found". This is intentional: a miss is safer than a wrong answer, and the query is always answered with a human channel.
+4. **The corpus is a dated snapshot** (20 Oct 2026). Every answer carries that date and a "may not be up to date" notice.
+5. **Medipal is not a medical service.** It does not diagnose, does not issue proof, and never handles an active emergency itself — see the boundaries above.
