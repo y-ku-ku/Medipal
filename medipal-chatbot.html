@@ -469,12 +469,14 @@ const BOOKING_ZH_RX = /(帮我(预约|挂号|取消|约)|替我(预约|挂号|�
 
 const SELF_HARM_RX = /\b(kill myself|killing myself|end my (own )?life|suicide|suicidal|self[- ]?harm|hurt myself|want to die|don'?t want to live|no reason to live)\b|自杀|轻生|不想活|想死|自残/i;
 
+const ADMIN_CONTEXT_RX = /\b(reimburse|reimbursement|claim|claims|form|receipt|receipts|submit|submission|apply|application|document|documents|paperwork|reply slip|discharge summary)\b/i;
+
 function boundaryIntent(q){
   if(SELF_HARM_RX.test(q)) return 'crisis';
   if(EMERGENCY_ACTIVE_RX.test(q) || EMERGENCY_ZH_RX.test(q)) return 'emergency';
   if(PROOF_REQUEST_RX.test(q) || PROOF_ZH_RX.test(q))        return 'proof';
   if(BOOKING_REQUEST_RX.test(q) || BOOKING_ZH_RX.test(q))    return 'booking';
-  if(SYMPTOM_RX.test(q))                                     return 'symptom';
+  if(SYMPTOM_RX.test(q) && !ADMIN_CONTEXT_RX.test(q))        return 'symptom';
   return null;
 }
 
