@@ -632,6 +632,9 @@ const messagesEl = document.getElementById("messages");
 const chipsEl = document.getElementById("chips");
 const toggleSuggestionsBtn = document.getElementById("toggleSuggestionsBtn");
 const inputEl = document.getElementById("input");
+const sendBtn = document.querySelector(".send-btn");
+const runTestsBtn = document.getElementById("runTestsBtn");
+let isSelfTestPlaybackRunning = false;
 
 const SUGGESTIONS = [
   "Where is the UHS clinic and how do I book?",
@@ -673,8 +676,8 @@ toggleSuggestionsBtn.addEventListener("click",()=>{
   toggleSuggestionsBtn.textContent=isExpanded?"Show suggestions":"Hide suggestions";
 });
 
-function send(){
-  const q=inputEl.value.trim(); if(!q)return;
+async function send(query=inputEl.value.trim(), responseDelay=600+Math.random()*400, isTestCase=false){
+  const q=query.trim(); if(!q || (isSelfTestPlaybackRunning && !isTestCase))return;
   addMsg(q,"user","user");
   inputEl.value=""; chipsEl.innerHTML="";
   const row = document.createElement("div"); row.className = "row";
@@ -683,7 +686,8 @@ function send(){
   t.setAttribute("aria-label","Medipal is composing an answer from the fixed corpus");
   t.innerHTML = "<span></span><span></span><span></span>";
   row.appendChild(t); messagesEl.appendChild(row); messagesEl.scrollTop = messagesEl.scrollHeight;
-  setTimeout(()=>{ t.remove(); const a=answer(q); const el=addMsg(a.html,a.cls,"bot",row); if(a.color){el.style.borderLeft="4px solid "+a.color;} addChips(); }, 600+Math.random()*400);
+  await new Promise(resolve=>setTimeout(resolve,responseDelay));
+  t.remove(); const a=answer(q); const el=addMsg(a.html,a.cls,"bot",row); if(a.color){el.style.borderLeft="4px solid "+a.color;} addChips();
 }
 inputEl.addEventListener("keydown",e=>{ if(e.key==="Enter")send(); });
 
@@ -801,7 +805,11 @@ function checkCase(t){
            why: [ route?"":"route", grounded?"":"verbatim", provenance?"":"citation", nextStep?"":"next-step" ].filter(Boolean).join(" + ") };
 }
 
-function runSelfTests(){
+async function runSelfTests(){
+  if(isSelfTestPlaybackRunning)return;
+  isSelfTestPlaybackRunning=true;
+  const originalInput=inputEl.value;
+  inputEl.disabled=true; sendBtn.disabled=true; runTestsBtn.disabled=true;
   const rows = ALL_TESTS.map(checkCase);
   console.table(rows);
   for(const g of GROUPS){
@@ -814,6 +822,13 @@ function runSelfTests(){
   const passed = rows.filter(r=>r.pass).length;
   console.log(`Self-tests: ${passed}/${rows.length} passed`);
   showTestPanel(rows, passed);
+  try{
+    for(const test of ALL_TESTS) await send(test.q,120,true);
+  }finally{
+    inputEl.value=originalInput;
+    inputEl.disabled=false; sendBtn.disabled=false; runTestsBtn.disabled=false;
+    isSelfTestPlaybackRunning=false;
+  }
 }
 
 function showTestPanel(rows, passed){
@@ -842,7 +857,7 @@ function showTestPanel(rows, passed){
 }
 
 if(location.hash === "#tests" || location.search.includes("tests=1")) setTimeout(runSelfTests, 0);
-document.getElementById("runTestsBtn").addEventListener("click", runSelfTests);
+runTestsBtn.addEventListener("click", runSelfTests);
 </script>
 </body>
 </html>
