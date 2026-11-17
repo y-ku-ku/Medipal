@@ -1,5 +1,9 @@
 # Medipal — Demo Walkthrough (AILT9019)
 
+> **🌐 Try it online (no download needed):** https://y-ku-ku.github.io/Medipal/medipal-chatbot.html
+>
+> The site is deployed automatically from this repository via GitHub Pages.
+
 **Setup:** Download this project repository, then open the `medipal-chatbot.html` file. It will open a web page, where you can input your queries and interact with Medipal. No login, no API key — everything runs locally in the page. Nothing you type is stored.
 
 **Scope:** answers come only from a fixed corpus of 8 entries taken from 7 official UHS pages (source + retrieval date shown on every answer). Student project, not an official HKU service.
