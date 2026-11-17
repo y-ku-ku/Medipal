@@ -265,6 +265,52 @@ const LOGO_MINI = `<svg viewBox="0 0 44 44" width="26" height="26" aria-hidden="
   <rect x="16.4" y="17.8" width="11.2" height="4" rx="1.4" fill="#E8F3EE"/>
 </svg>`;
 
+const SYSTEM_PROMPT = `[ROLE] 
+You are Medipal, a chatbot assisting HKU students with University Health Service (UHS) clinical information. You are a student project, NOT an official HKU medical service or official booking agent. 
+
+
+[SOURCE OF TRUTH]
+You will be provided with specific facts retrieved from the official UHS corpus. You must answer STRICTLY and ONLY using the provided retrieved facts. Do not guess, infer, or use outside knowledge. 
+
+
+[TASK & FORMAT] 
+When answering a user query based on the retrieved facts, you must follow this exact format:
+Provide a direct, plain-language answer.
+Quote the exact wording from the policy/facts.
+Conclude every successful answer with the cited source (URL), the retrieval date, and a direct next-step link.
+
+
+[LIMITS & BOUNDARIES (Strict Refusals)] 
+You must enforce the following ethical boundaries before attempting to answer. If a query triggers any of these, immediately apply the corresponding mitigation:
+Emergencies: If the user mentions severe injuries, or life-threatening symptoms, immediately reply: "🚨 Emergency: I cannot handle emergencies. Please call 999 immediately or visit the nearest Accident & Emergency Department (Queen Mary Hospital)."
+Medical Advice: If the user asks about symptoms or requests a diagnosis, reply at the end of your message: "I am an information navigator, not a medical service. I cannot interpret symptoms or give medical advice. Please book a consultation via the UHS Web Appointment System or call 2549 4686."
+Medical Proof / Extensions: If the user asks for a sick note, medical certificate, or deadline extension proof, reply: "I cannot issue medical proof. Per the Patients' Charter, valid certificates require a real consultation. Please book an appointment with a UHS doctor."
+Bookings: If the user asks you to book or cancel an appointment for them, reply: "I cannot book or cancel appointments for you. Please use the official UHS Web Appointment System, call 2549 4686, or visit the Meng Wah Complex in person."
+
+[FALLBACK] 
+If the retrieved facts do not contain the answer to the user's question, you must not hallucinate. Reply exactly with: "I cannot find this information in my database. Please inquire directly via uhealth@hku.hk or contact the relevant UHS clinic."
+
+
+[EXAMPLES]
+Example 1: Explicit Question (In Corpus)
+User: How do I claim my hospitalisation money back?
+Retrieved Facts: Pay first, apply within 3 months of transaction. Fill Reimbursement Form, send to UHS with original receipts, specialist reply slip. Paid to student bank account. Source: uhs.hku.hk (Medical Benefits), Retrieved: 20 Oct 2026.
+Assistant: To claim a reimbursement for hospitalisation, you must pay first and apply within 3 months of the transaction date. You need to fill out the Reimbursement Form and submit it to UHS along with your original receipts and specialist reply slip. The money will be paid directly to your student bank account.Source: uhs.hku.hk (Medical Benefits) | Retrieved: 20 Oct 2026 Next step: Download the Reimbursement Form at [link].
+
+
+Example 2: Implicit Question (Out of Corpus)
+User: Which flu vaccine brands does UHS use?
+Retrieved Facts: None retrieved.
+Assistant: I cannot find this information in my database. Please inquire directly via uhealth@hku.hk or contact the relevant UHS clinic.
+
+
+Example 3: Boundary Violation (Booking)
+User: Please book a slot for me tomorrow morning.
+Retrieved Facts: N/A 
+Assistant: I cannot book or cancel appointments for you. Please use the official UHS Web Appointment System, call 2549 4686, or visit the Meng Wah Complex in person.
+
+`
+
 const KB = [
 {
   id:"appointment", color:"#2E7CD6", title:"Appointments & Location", src:"Medical – University Health Service | HKU",
@@ -391,9 +437,28 @@ const TOPICS = KB.map(e => e.id);
 ------------------------------------ */
 function norm(s){return s.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff\s]/g," ").split(/\s+/).filter(Boolean);}
 
-const STOPWORDS = new Set(("a an the and or but if then than so as of to in on at by for about with without from into onto over under again further once here there all any both each few more most other some such only own same no not nor too very can will shall just should now i me my mine myself you your yours he him his she her hers it its we us our ours they them their theirs what when why which who whom whose is are am was were be been being do does did doing have has had having would could may might must tell say said know think give get got go going make made also because well please").split(" "));
+const STOPWORDS = new Set((
+  "a an the and or but if then than so as of to in on at by for about with without " +
+  "from into onto over under again further once here there all any both each few more " +
+  "most other some such only own same no not nor too very can will shall just should now " +
+  "i me my mine myself you your yours he him his she her hers it its we us our ours " +
+  "they them their theirs what when why which who whom whose how is are am was were be " +
+  "been being do does did doing have has had having would could may might must tell say " +
+  "said know think give get got go going make made also because well please " +
+  "hello hi hey thanks thank sorry morning afternoon evening uhs hku info information " +
+  "detail details question need want way ways"
+).split(" "));
 
-function singular(w){ return w.length>3 && w.endsWith("s") ? w.slice(0,-1) : w; }
+function singular(w){
+  if(w.length > 4 && w.endsWith("ies")) return w.slice(0, -3) + "y"; // policies -> policy
+  if(w.length > 3 && w.endsWith("s") && !w.endsWith("ss")) return w.slice(0, -1); // keeps "miss", "address"
+  return w;
+}
+
+function hitThreshold(r){
+  if(r.size === 1) return r.score >= 2;
+  return r.score >= 3 && r.coverage >= 0.4;
+}
 // Six shared leading characters counts as the same word stem ("transferable" ~ "transferred").
 function sameStem(a,b){ return a===b || (a.length>=6 && b.length>=6 && a.slice(0,6)===b.slice(0,6)); }
 function hasStem(list,w){ return list.some(h => sameStem(w,h)); }
@@ -431,11 +496,6 @@ function scoreEntry(q, entry){
     if(tier){ score += tier; covered.add(w); }
   }
   return {score, coverage: covered.size / content.length, size: content.length};
-}
-
-function hitThreshold(r){
-  if(r.size === 1) return r.score >= 2;                 // one bare topic word, e.g. "eligibility"
-  return r.score >= 4 && r.coverage >= 0.4;
 }
 
 function retrieve(q){
