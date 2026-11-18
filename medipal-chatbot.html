@@ -468,9 +468,40 @@ function hitThreshold(r){
   if(r.size === 1) return r.score >= 2;
   return r.score >= 3 && r.coverage >= 0.4;
 }
+
 // Six shared leading characters counts as the same word stem ("transferable" ~ "transferred").
 function sameStem(a,b){ return a===b || (a.length>=6 && b.length>=6 && a.slice(0,6)===b.slice(0,6)); }
 function hasStem(list,w){ return list.some(h => sameStem(w,h)); }
+
+// increases tolerance for typos and transpositions, but only for words of 5+ characters
+function editDistance(a, b) {
+  if (Math.abs(a.length - b.length) > 1) return 2; // fast exit if length differs by >1
+  const dp = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const temp = dp[j];
+      dp[j] = a[i - 1] === b[j - 1]
+        ? prev
+        : 1 + Math.min(prev, dp[j], dp[j - 1]);
+      prev = temp;
+    }
+  }
+  return dp[b.length];
+}
+
+function isFuzzyMatch(a, b) {
+  if (a.length < 5 || b.length < 5) return false;
+  if (editDistance(a, b) <= 1) return true;
+  if (a.length === b.length) {
+    for (let i = 0; i < a.length - 1; i++) {
+      if (a[i] === b[i + 1] && a[i + 1] === b[i] &&
+          a.slice(0, i) === b.slice(0, i) && a.slice(i + 2) === b.slice(i + 2)) return true;
+    }
+  }
+  return false;
+}
 
 function scoreEntry(q, entry){
   const qWords = norm(q);
@@ -499,8 +530,12 @@ function scoreEntry(q, entry){
   for(const w of content){
     if(covered.has(w)) continue;
     let tier = 0;
-    for(const k of kws){ if(k.includes(" ")) continue; if(w===k){ tier=3; break; } if(sameStem(w,k)) tier=Math.max(tier,2); }
-    if(!tier && hasStem(title,w)) tier = 2;
+    for(const k of kws){
+      if(k.includes(" ")) continue;
+      if(w===k){ tier=3; break; }
+      if(sameStem(w,k) || isFuzzyMatch(w,k)) tier=Math.max(tier,2);
+    }
+    if(!tier && (hasStem(title,w) || title.some(t => isFuzzyMatch(w,t)))) tier = 2;
     if(!tier && hasStem(body,w))  tier = 1;
     if(tier){ score += tier; covered.add(w); }
   }
@@ -540,9 +575,16 @@ const SELF_HARM_RX = /\b(kill myself|killing myself|end my (own )?life|suicide|s
 
 const ADMIN_CONTEXT_RX = /\b(reimburse|reimbursement|claim|claims|form|receipt|receipts|submit|submission|apply|application|document|documents|paperwork|reply slip|discharge summary)\b/i;
 
+const CRISIS_FUZZY = ["suicide", "suicidal"];
+const EMERGENCY_FUZZY = ["choking", "unconscious", "seizure", "overdose", "poisoning"];
+
+function hasFuzzyTerm(q, targets) {
+  return norm(q).some(w => targets.some(t => w === t || isFuzzyMatch(w, t)));
+}
+
 function boundaryIntent(q){
-  if(SELF_HARM_RX.test(q)) return 'crisis';
-  if(EMERGENCY_ACTIVE_RX.test(q) || EMERGENCY_ZH_RX.test(q)) return 'emergency';
+  if(SELF_HARM_RX.test(q) || hasFuzzyTerm(q, CRISIS_FUZZY)) return 'crisis';
+  if(EMERGENCY_ACTIVE_RX.test(q) || EMERGENCY_ZH_RX.test(q) || hasFuzzyTerm(q, EMERGENCY_FUZZY)) return 'emergency';
   if(PROOF_REQUEST_RX.test(q) || PROOF_ZH_RX.test(q))        return 'proof';
   if(BOOKING_REQUEST_RX.test(q) || BOOKING_ZH_RX.test(q))    return 'booking';
   if(SYMPTOM_RX.test(q) && !ADMIN_CONTEXT_RX.test(q))        return 'symptom';
