@@ -258,7 +258,7 @@
           </svg>
         </button>
       </div>
-      <div class="disclaimer">Medipal is an <b>information navigator, not a medical service</b> · in an emergency call <b>999</b> <button id="runTestsBtn" type="button" style="background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-size:10.5px;padding:3px 9px;cursor:pointer;margin-left:6px">run self-tests</button></div>
+      <div class="disclaimer">Medipal is an <b>information navigator, not a medical service</b> · in an emergency call <b>999</b> <button id="runTestsBtn" type="button" style="background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-size:10.5px;padding:3px 9px;cursor:pointer;margin-left:6px">run self-tests</button> <button id="runUnseenTestsBtn" type="button" style="background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-size:10.5px;padding:3px 9px;cursor:pointer;margin-left:3px">run unseen test</button></div>
     </div>
   </main>
 
@@ -634,7 +634,9 @@ const toggleSuggestionsBtn = document.getElementById("toggleSuggestionsBtn");
 const inputEl = document.getElementById("input");
 const sendBtn = document.querySelector(".send-btn");
 const runTestsBtn = document.getElementById("runTestsBtn");
+const runUnseenTestsBtn = document.getElementById("runUnseenTestsBtn");
 let isSelfTestPlaybackRunning = false;
+let isUnseenTestPlaybackRunning = false;
 
 const SUGGESTIONS = [
   "Where is the UHS clinic and how do I book?",
@@ -669,6 +671,11 @@ function addChips(){ chipsEl.innerHTML=""; SUGGESTIONS.forEach(s=>{
   const c=document.createElement("button"); c.type="button"; c.className="chip"; c.textContent=s;
   c.onclick=()=>{ inputEl.value=s; send(); }; chipsEl.appendChild(c); });}
 
+function setTestControlsDisabled(disabled){
+  inputEl.disabled=disabled; sendBtn.disabled=disabled;
+  runTestsBtn.disabled=disabled; runUnseenTestsBtn.disabled=disabled;
+}
+
 toggleSuggestionsBtn.addEventListener("click",()=>{
   const isExpanded=toggleSuggestionsBtn.getAttribute("aria-expanded")==="true";
   chipsEl.hidden=isExpanded;
@@ -677,7 +684,7 @@ toggleSuggestionsBtn.addEventListener("click",()=>{
 });
 
 async function send(query=inputEl.value.trim(), responseDelay=600+Math.random()*400, isTestCase=false){
-  const q=query.trim(); if(!q || (isSelfTestPlaybackRunning && !isTestCase))return;
+  const q=query.trim(); if(!q || ((isSelfTestPlaybackRunning || isUnseenTestPlaybackRunning) && !isTestCase))return;
   addMsg(q,"user","user");
   inputEl.value=""; chipsEl.innerHTML="";
   const row = document.createElement("div"); row.className = "row";
@@ -787,6 +794,27 @@ const SIDEBAR_TESTS = KB.map(e => ({ t:5, q:"Tell me about "+e.title.toLowerCase
 const ALL_TESTS = SELF_TESTS.concat(SIDEBAR_TESTS);
 const GROUPS = [1,2,3,4,5];
 
+const UNSEEN_TEST_CASES = [
+  { q:"How do I see the dentist at the clinic?", expect:"corpus:appointment" },
+  { q:"Do i need to return anything to UHS after seeing the specialist", expect:"corpus:referral" },
+  { q:"Can somebody else take my appointment slot?", expect:"corpus:appointment" },
+  { q:"What should I do if I need to cancel a booking?", expect:"corpus:appointment" },
+  { q:"Could you give me the dental clinic's phone number?", expect:"corpus:contact" },
+  { q:"How can I reach the physiotherapy team?", expect:"corpus:contact" },
+  { q:"What help does UHS offer for dental emergencies?", expect:"corpus:emergency" },
+  { q:"Can graduates continue using the health service?", expect:"corpus:eligibility" },
+  { q:"I have a specialist referral. What should I bring?", expect:"corpus:referral" },
+  { q:"Which documents do I need to claim medical expenses?", expect:"corpus:reimbursement" },
+  { q:"How can I raise a concern about the care I received?", expect:"corpus:charter" },
+  { q:"Who is allowed to access my medical records?", expect:"corpus:privacy" },
+  { q:"Does UHS provide eye examinations?", expect:"fallback" },
+  { q:"I am having trouble breathing and need urgent help.", expect:"emergency" },
+  { q:"I have a fever. Can you diagnose what I have?", expect:"symptom" },
+  { q:"Can you write a doctor's note for my course?", expect:"proof" },
+  { q:"Please book a physiotherapy appointment for next week.", expect:"booking" },
+  { q:"I don't want to be alive anymore. Can you help me?", expect:"crisis" },
+];
+
 // Any reply must hand the user an official channel: a source URL, a UHS number or the emergency numbers.
 const NEXT_STEP_RX = /(2549 4686|3917 2510|3917 2509|uhealth@hku\.hk|uhs\.hku\.hk|call <b>999|Queen Mary)/i;
 
@@ -806,28 +834,67 @@ function checkCase(t){
 }
 
 async function runSelfTests(){
-  if(isSelfTestPlaybackRunning)return;
+  if(isSelfTestPlaybackRunning || isUnseenTestPlaybackRunning)return;
   isSelfTestPlaybackRunning=true;
   const originalInput=inputEl.value;
-  inputEl.disabled=true; sendBtn.disabled=true; runTestsBtn.disabled=true;
-  const rows = ALL_TESTS.map(checkCase);
-  console.table(rows);
-  for(const g of GROUPS){
-    const sub = rows.filter(r=>r.test === "T"+g);
-    const ok = sub.filter(r=>r.pass).length;
-    const acc = ACCEPTANCE[g];
-    const rate = sub.length ? ok/sub.length : 0;
-    console.log(`${GROUP_NAMES[g]}: ${ok}/${sub.length} (${Math.round(rate*100)}%) — need >=${acc.min} cases at >=${acc.rate*100}% ${rate >= acc.rate && sub.length >= acc.min ? "ACCEPT" : "REJECT"}`);
-  }
-  const passed = rows.filter(r=>r.pass).length;
-  console.log(`Self-tests: ${passed}/${rows.length} passed`);
-  showTestPanel(rows, passed);
+  setTestControlsDisabled(true);
+  document.getElementById("unseenTestPanel")?.remove();
   try{
+    const rows = ALL_TESTS.map(checkCase);
+    console.table(rows);
+    for(const g of GROUPS){
+      const sub = rows.filter(r=>r.test === "T"+g);
+      const ok = sub.filter(r=>r.pass).length;
+      const acc = ACCEPTANCE[g];
+      const rate = sub.length ? ok/sub.length : 0;
+      console.log(`${GROUP_NAMES[g]}: ${ok}/${sub.length} (${Math.round(rate*100)}%) — need >=${acc.min} cases at >=${acc.rate*100}% ${rate >= acc.rate && sub.length >= acc.min ? "ACCEPT" : "REJECT"}`);
+    }
+    const passed = rows.filter(r=>r.pass).length;
+    console.log(`Self-tests: ${passed}/${rows.length} passed`);
+    showTestPanel(rows, passed);
     for(const test of ALL_TESTS) await send(test.q,120,true);
   }finally{
     inputEl.value=originalInput;
-    inputEl.disabled=false; sendBtn.disabled=false; runTestsBtn.disabled=false;
+    setTestControlsDisabled(false);
     isSelfTestPlaybackRunning=false;
+  }
+}
+
+function checkUnseenTestCase(testCase){
+  const testAnswer=answer(testCase.q);
+  const actualRoute=testAnswer.kind === "corpus" ? "corpus:"+testAnswer.entryId : testAnswer.kind;
+  const routeMatches=actualRoute === testCase.expect;
+  let answerGrounded=true, citationPresent=true;
+  if(testAnswer.kind === "corpus"){
+    const corpusEntry=KB.find(entry=>entry.id === testAnswer.entryId);
+    answerGrounded=testAnswer.html.indexOf(corpusEntry.body) === 0;
+    citationPresent=testAnswer.html.includes(corpusEntry.src) && testAnswer.html.includes(corpusEntry.url) && testAnswer.html.includes(RETRIEVED);
+  }
+  const officialNextStep=NEXT_STEP_RX.test(testAnswer.html);
+  return {
+    query:testCase.q, expected:testCase.expect, actual:actualRoute,
+    pass:routeMatches && answerGrounded && citationPresent && officialNextStep,
+    why:[routeMatches?"":"route",answerGrounded?"":"verbatim",citationPresent?"":"citation",officialNextStep?"":"next-step"].filter(Boolean).join(" + ")
+  };
+}
+
+async function runUnseenTests(){
+  if(isSelfTestPlaybackRunning || isUnseenTestPlaybackRunning)return;
+  isUnseenTestPlaybackRunning=true;
+  const savedInputValue=inputEl.value;
+  setTestControlsDisabled(true);
+  document.getElementById("testPanel")?.remove();
+  try{
+    const unseenRows=UNSEEN_TEST_CASES.map(checkUnseenTestCase);
+    const unseenPassed=unseenRows.filter(row=>row.pass).length;
+    console.table(unseenRows);
+    console.log(`Unseen tests: ${unseenPassed}/${unseenRows.length} passed`);
+    showUnseenTestPanel(unseenRows,unseenPassed);
+    for(const unseenCase of UNSEEN_TEST_CASES) await send(unseenCase.q,120,true);
+  }finally{
+    inputEl.value=savedInputValue;
+    setTestControlsDisabled(false);
+    isUnseenTestPlaybackRunning=false;
   }
 }
 
@@ -856,8 +923,25 @@ function showTestPanel(rows, passed){
   panel.innerHTML = html;
 }
 
+function showUnseenTestPanel(unseenRows, unseenPassed){
+  let panel=document.getElementById("unseenTestPanel");
+  if(!panel){
+    panel=document.createElement("div");
+    panel.id="unseenTestPanel";
+    panel.style.cssText="position:fixed;top:14px;left:14px;background:#fff;border:1px solid #ccc;border-radius:10px;padding:12px;font:12px sans-serif;z-index:9999;max-width:400px;max-height:80vh;overflow:auto;box-shadow:0 4px 14px rgba(0,0,0,.1);";
+    document.body.appendChild(panel);
+  }
+  const titleColor=unseenPassed === unseenRows.length ? "#0B5C46" : "#B3362B";
+  let panelContent=`<div style="font-weight:600;margin-bottom:8px;color:${titleColor}">Unseen tests: ${unseenPassed}/${unseenRows.length}</div>`;
+  panelContent+=unseenRows.filter(row=>!row.pass).length
+    ? unseenRows.filter(row=>!row.pass).map(row=>`<div style="margin-bottom:6px;color:#B3362B"><b aria-hidden="true">✘</b> ${row.query}<br><span style="color:#5F6F68">expected ${row.expected}, got ${row.actual}${row.why?" · failed: "+row.why:""}</span></div>`).join("")
+    : `<div style="color:#5F6F68;margin-bottom:4px">all passed</div>`;
+  panel.innerHTML=panelContent;
+}
+
 if(location.hash === "#tests" || location.search.includes("tests=1")) setTimeout(runSelfTests, 0);
 runTestsBtn.addEventListener("click", runSelfTests);
+runUnseenTestsBtn.addEventListener("click", runUnseenTests);
 </script>
 </body>
 </html>
