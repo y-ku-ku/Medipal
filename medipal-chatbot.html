@@ -116,6 +116,13 @@
 
   .typing{display:flex;gap:5px;padding:15px 17px;background:var(--card);border:1px solid var(--border);
           border-radius:var(--radius);border-bottom-left-radius:5px;box-shadow:var(--shadow)}
+    .typing-wrap{display:flex;align-items:center;gap:8px;max-width:100%}
+    .typing-status{padding:0 4px;font-size:11px;font-style:italic;color:var(--faint)}
+    .test-panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .test-panel-close{border:0;background:transparent;color:var(--muted);font:inherit;font-size:18px;
+                      line-height:1;cursor:pointer;padding:0 2px}
+    .test-panel-close:hover{color:var(--text)}
+    .test-panel-close:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
   .typing span{width:7px;height:7px;border-radius:50%;background:#9DB8AF;animation:blink 1.2s infinite}
   .typing span:nth-child(2){animation-delay:.2s}
   .typing span:nth-child(3){animation-delay:.4s}
@@ -543,12 +550,12 @@ function scoreEntry(q, entry){
 }
 
 function retrieve(q){
-  let best=null, bs=0;
+  let best=null, bestScore=0, bestCoverage=0;
   for(const e of KB){
     const r = scoreEntry(q,e);
-    if(hitThreshold(r) && r.score > bs){ bs = r.score; best = e; }
+    if(hitThreshold(r) && r.score > bestScore){ bestScore = r.score; bestCoverage = r.coverage; best = e; }
   }
-  return best ? {entry:best, score:bs} : null;
+  return best ? {entry:best, score:bestScore, coverage:bestCoverage} : null;
 }
 
 /* ---------- boundary guards ----------
@@ -571,7 +578,7 @@ const EMERGENCY_ZH_RX = /(大出血|流血不止|大量出血|严重发热|高�
 const PROOF_ZH_RX   = /(写.{0,6}病假纸|开.{0,6}(病假纸|医生纸|证明|证书)|(病假纸|病假條|医生纸|医疗证明|医疗证书|证明信|豁免).{0,10}(延期|豁免|交))/;
 const BOOKING_ZH_RX = /(帮我(预约|挂号|取消|约)|替我(预约|挂号|取消))/;
 
-const SELF_HARM_RX = /\b(kill myself|killing myself|end my (own )?life|suicide|suicidal|self[- ]?harm|hurt myself|want to die|don'?t want to live|no reason to live)\b|自杀|轻生|不想活|想死|自残/i;
+const SELF_HARM_RX = /\b(kill myself|killing myself|kms|end my (own )?life|suicide|suicidal|self[- ]?harm|hurt myself|want to die|don'?t want to live|no reason to live|depressed|hopeless|no hope|sad)\b|自杀|轻生|不想活|想死|自残/i;
 
 const ADMIN_CONTEXT_RX = /\b(reimburse|reimbursement|claim|claims|form|receipt|receipts|submit|submission|apply|application|document|documents|paperwork|reply slip|discharge summary)\b/i;
 
@@ -582,7 +589,7 @@ function hasFuzzyTerm(q, targets) {
   return norm(q).some(w => targets.some(t => w === t || isFuzzyMatch(w, t)));
 }
 
-function boundaryIntent(q){
+function lowestCertainty(q){
   if(SELF_HARM_RX.test(q) || hasFuzzyTerm(q, CRISIS_FUZZY)) return 'crisis';
   if(EMERGENCY_ACTIVE_RX.test(q) || EMERGENCY_ZH_RX.test(q) || hasFuzzyTerm(q, EMERGENCY_FUZZY)) return 'emergency';
   if(PROOF_REQUEST_RX.test(q) || PROOF_ZH_RX.test(q))        return 'proof';
@@ -602,7 +609,7 @@ function topkBox(rankedList){
 function cite(e){ return `<span class="cite"><span aria-hidden="true">📎</span> Source: ${e.src} — <a href="https://${e.url.split(" ")[0]}" target="_blank" rel="noopener noreferrer">${e.url}</a> · corpus retrieved ${RETRIEVED} · info may not be up to date, please confirm with official UHS channels</span>`; }
 
 function answer(q){
-  const intent = boundaryIntent(q);
+  const intent = lowestCertainty(q);
   if(intent === 'crisis'){
     return {kind:"crisis", cls:"bot emergency", color:"#C0392B", html:
 `<span aria-hidden="true">💚</span> <b>I'm very sorry you're feeling this way. This chatbot cannot provide crisis support, so please reach a person right now.</b>
@@ -611,7 +618,7 @@ function answer(q){
 · On campus: CEDARS Counselling and Person Enrichment can arrange urgent support — cedars.hku.hk.
 · If you are not in immediate danger, please tell someone you trust and contact CEDARS.
 
-You do not have to handle this alone.`};
+You do not have to handle this alone.`, intent};
   }
   if(intent === 'emergency'){
     const e = KB.find(x=>x.id==="emergency");
@@ -622,7 +629,7 @@ You do not have to handle this alone.`};
 · Nearest A&amp;E: <b>Queen Mary Hospital</b>, Pokfulam Road (public hospital).
 · On-campus urgent help: approach UHS staff directly, 2/F Meng Wah Complex.
 
-${cite(e)}`};
+${cite(e)}`, intent};
   }
   if(intent === 'proof'){
     const e = KB.find(x=>x.id==="charter");
@@ -631,7 +638,7 @@ ${cite(e)}`};
 
 Per the Patients' Charter, patients <b>should not ask health care providers to provide incorrect information, receipts or certificates</b>. If a legitimate certificate exists, it can only be issued by UHS staff through a real consultation — please book an appointment (web booking / call 2549 4686 / walk in) and discuss with the doctor.
 
-${cite(e)}`};
+${cite(e)}`, intent};
   }
   if(intent === 'booking'){
     const e = KB.find(x=>x.id==="appointment");
@@ -640,7 +647,7 @@ ${cite(e)}`};
 
 Three official ways: <b>① Web booking</b> (UHS Web Appointment System) · <b>② Call 2549 4686</b> · <b>③ Walk in</b> to 2/F Meng Wah Complex.
 
-${cite(e)}`};
+${cite(e)}`, intent};
   }
   if(intent === 'symptom'){
     const e = KB.find(x=>x.id==="appointment");
@@ -654,13 +661,13 @@ If you'd like to discuss this with a physician, here's how to reach one:
 
 If this feels urgent, see the emergency guidance: <b>999</b> / Queen Mary Hospital A&amp;E.
 
-${cite(e)}`};
+${cite(e)}`, intent};
   }
   const hit = retrieve(q);
   const rankedList = ranked(q);
   if(hit){
     const e = hit.entry;
-    return {kind:"corpus", entryId:e.id, cls:"bot", color:e.color, html: e.body + cite(e) + topkBox(rankedList)};
+    return {kind:"corpus", entryId:e.id, hitCoverage:hit.coverage, cls:"bot", color:e.color, html: e.body + cite(e) + topkBox(rankedList)};
   }
   return {kind:"fallback", cls:"bot", html:
 `I checked my fixed corpus (7 official UHS pages, 8 entries — I don't browse the live web) and <b>this content is not in my database</b>, so I won't guess.
@@ -720,6 +727,21 @@ function setTestControlsDisabled(disabled){
   runTestsBtn.disabled=disabled; runUnseenTestsBtn.disabled=disabled;
 }
 
+const thinkingLevelRanges = {
+  corpusHighCoverage:[1,3.1],
+  corpusBorderlineCoverage:[1,6],
+  notInCorpus:[2,8],
+  boundaryIntent:[2,6]
+};
+
+function chooseThinkingLevel(response){
+  const range=response.intent?thinkingLevelRanges.boundaryIntent:
+    response.kind==="corpus"&&response.hitCoverage>0.6?thinkingLevelRanges.corpusHighCoverage:
+    response.kind==="corpus"&&response.hitCoverage>=0.4?thinkingLevelRanges.corpusBorderlineCoverage:
+    thinkingLevelRanges.notInCorpus;
+  return range[0]+Math.random()*(range[1]-range[0]);
+}
+
 toggleSuggestionsBtn.addEventListener("click",()=>{
   const isExpanded=toggleSuggestionsBtn.getAttribute("aria-expanded")==="true";
   chipsEl.hidden=isExpanded;
@@ -727,8 +749,11 @@ toggleSuggestionsBtn.addEventListener("click",()=>{
   toggleSuggestionsBtn.textContent=isExpanded?"Show suggestions":"Hide suggestions";
 });
 
-async function send(query=inputEl.value.trim(), responseDelay=600+Math.random()*400, isTestCase=false){
+async function send(query=inputEl.value.trim(), isTestCase=false){
   const q=query.trim(); if(!q || ((isSelfTestPlaybackRunning || isUnseenTestPlaybackRunning) && !isTestCase))return;
+  const response=answer(q);
+  const thinkingLevel=chooseThinkingLevel(response);
+  const waitMilliseconds=thinkingLevel*1000;
   addMsg(q,"user","user");
   inputEl.value=""; chipsEl.innerHTML="";
   const row = document.createElement("div"); row.className = "row";
@@ -736,9 +761,23 @@ async function send(query=inputEl.value.trim(), responseDelay=600+Math.random()*
   const t = document.createElement("div"); t.className = "typing"; t.setAttribute("role","status");
   t.setAttribute("aria-label","Medipal is composing an answer from the fixed corpus");
   t.innerHTML = "<span></span><span></span><span></span>";
-  row.appendChild(t); messagesEl.appendChild(row); messagesEl.scrollTop = messagesEl.scrollHeight;
-  await new Promise(resolve=>setTimeout(resolve,responseDelay));
-  t.remove(); const a=answer(q); const el=addMsg(a.html,a.cls,"bot",row); if(a.color){el.style.borderLeft="4px solid "+a.color;} addChips();
+  const typingWrap=document.createElement("div");
+  typingWrap.className="typing-wrap";
+  typingWrap.appendChild(t);
+  row.appendChild(typingWrap); messagesEl.appendChild(row); messagesEl.scrollTop = messagesEl.scrollHeight;
+  let searchStatus=null;
+  const statusTimer=waitMilliseconds>3000?setTimeout(()=>{
+    if(!typingWrap.contains(t))return;
+    searchStatus=document.createElement("i");
+    searchStatus.className="typing-status";
+    searchStatus.textContent="Searching for corpus content";
+    typingWrap.appendChild(searchStatus);
+  },3001):null;
+  await new Promise(resolve=>setTimeout(resolve,waitMilliseconds));
+  clearTimeout(statusTimer);
+  typingWrap.remove();
+  searchStatus?.remove();
+  t.remove(); const el=addMsg(response.html,response.cls,"bot",row); if(response.color){el.style.borderLeft="4px solid "+response.color;} addChips();
 }
 inputEl.addEventListener("keydown",e=>{ if(e.key==="Enter")send(); });
 
@@ -877,6 +916,7 @@ async function runSelfTests(){
     const selfTestCases=await loadTestCsv("self-tests.csv",selfTestsCsvInput,true);
     if(!selfTestCases)return;
     const rows=selfTestCases.map(testCase=>checkCase(testCase));
+    for(const test of selfTestCases) await send(test.q,true);
     console.table(rows);
     for(const g of GROUPS){
       const sub = rows.filter(r=>r.test === "T"+g);
@@ -888,7 +928,6 @@ async function runSelfTests(){
     const passed = rows.filter(r=>r.pass).length;
     console.log(`Self-tests: ${passed}/${rows.length} passed`);
     showTestPanel(rows, passed);
-    for(const test of selfTestCases) await send(test.q,120,true);
   }catch(error){
     alert("Could not run self-tests: "+error.message);
   }finally{
@@ -926,11 +965,11 @@ async function runUnseenTests(){
     const unseenTestCases=await loadTestCsv("unseen-tests.csv",unseenTestsCsvInput,false);
     if(!unseenTestCases)return;
     const unseenRows=unseenTestCases.map(checkUnseenTestCase);
+    for(const unseenCase of unseenTestCases) await send(unseenCase.q,true);
     const unseenPassed=unseenRows.filter(row=>row.pass).length;
     console.table(unseenRows);
     console.log(`Unseen tests: ${unseenPassed}/${unseenRows.length} passed`);
     showUnseenTestPanel(unseenRows,unseenPassed);
-    for(const unseenCase of unseenTestCases) await send(unseenCase.q,120,true);
   }catch(error){
     alert("Could not run unseen tests: "+error.message);
   }finally{
@@ -949,7 +988,7 @@ function showTestPanel(rows, passed){
     document.body.appendChild(panel);
   }
   const headColor = passed === rows.length ? "#0B5C46" : "#B3362B";
-  let html = `<div style="font-weight:600;margin-bottom:8px;color:${headColor}">Self-tests: ${passed}/${rows.length}</div>`;
+  let html = `<div class="test-panel-heading"><div style="font-weight:600;margin-bottom:8px;color:${headColor}">Self-tests: ${passed}/${rows.length}</div><button class="test-panel-close" type="button" aria-label="Close self-test results">&times;</button></div>`;
   for(const g of GROUPS){
     const sub = rows.filter(r=>r.test === "T"+g);
     const ok = sub.filter(r=>r.pass).length;
@@ -963,6 +1002,7 @@ function showTestPanel(rows, passed){
       : `<div style="color:#5F6F68;margin-bottom:4px">all passed</div>`;
   }
   panel.innerHTML = html;
+  panel.querySelector(".test-panel-close").addEventListener("click",()=>panel.remove());
 }
 
 function showUnseenTestPanel(unseenRows, unseenPassed){
@@ -974,11 +1014,12 @@ function showUnseenTestPanel(unseenRows, unseenPassed){
     document.body.appendChild(panel);
   }
   const titleColor=unseenPassed === unseenRows.length ? "#0B5C46" : "#B3362B";
-  let panelContent=`<div style="font-weight:600;margin-bottom:8px;color:${titleColor}">Unseen tests: ${unseenPassed}/${unseenRows.length}</div>`;
+  let panelContent=`<div class="test-panel-heading"><div style="font-weight:600;margin-bottom:8px;color:${titleColor}">Unseen tests: ${unseenPassed}/${unseenRows.length}</div><button class="test-panel-close" type="button" aria-label="Close unseen-test results">&times;</button></div>`;
   panelContent+=unseenRows.filter(row=>!row.pass).length
     ? unseenRows.filter(row=>!row.pass).map(row=>`<div style="margin-bottom:6px;color:#B3362B"><b aria-hidden="true">✘</b> ${escapeHtml(row.query)}<br><span style="color:#5F6F68">expected ${escapeHtml(row.expected)}, got ${escapeHtml(row.actual)}${row.why?" · failed: "+escapeHtml(row.why):""}</span></div>`).join("")
     : `<div style="color:#5F6F68;margin-bottom:4px">all passed</div>`;
   panel.innerHTML=panelContent;
+  panel.querySelector(".test-panel-close").addEventListener("click",()=>panel.remove());
 }
 
 if((location.hash === "#tests" || location.search.includes("tests=1"))&&location.protocol!=="file:") setTimeout(runSelfTests, 0);

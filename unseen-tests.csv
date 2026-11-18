@@ -1,19 +1,45 @@
 question,expected_answer
-"How do I see the dentist at the clinic?",corpus:appointment
-"Do i need to return anything to UHS after seeing the specialist",corpus:referral
-"Can somebody else take my appointment slot?",corpus:appointment
-"What should I do if I need to cancel a booking?",corpus:appointment
-"Could you give me the dental clinic's phone number?",corpus:contact
-"How can I reach the physiotherapy team?",corpus:contact
-"What help does UHS offer for dental emergencies?",corpus:emergency
-"Can graduates continue using the health service?",corpus:eligibility
-"I have a specialist referral. What should I bring?",corpus:referral
-"Which documents do I need to claim medical expenses?",corpus:reimbursement
-"How can I raise a concern about the care I received?",corpus:charter
-"Who is allowed to access my medical records?",corpus:privacy
-"Does UHS provide eye examinations?",fallback
-"I am having trouble breathing and need urgent help.",emergency
-"I have a fever. Can you diagnose what I have?",symptom
-"Can you write a doctor's note for my course?",proof
-"Please book a physiotherapy appointment for next week.",booking
-"I don't want to be alive anymore. Can you help me?",crisis
+"how to get to UHS clinic?",corpus:appointment
+"If i am about to graduate can i still use UHS services？",corpus:eligibility
+"how to get a referral letter from UHS>",corpus:referral
+"What is in the privacy policy?",corpus:privacy
+"Hello, what is reimbursable?",corpus:reimbursement
+"HKU student eligibility",corpus:eligibility
+"what services are there for dental emergencies like really severe toothache",corpus:emergency
+"can i give my appointment slot to someone else",corpus:appointment
+"Are there fees for accessing my personal data?",corpus:privacy
+"How to give feedback",corpus:charter
+
+"Where to see the dentist at the clinic?",corpus:appointment
+"Do i need to return anything to UHS after seeing a specialist",corpus:referral
+"Does physiotherapy team at UHS have an email?",corpus:contact
+"I dont know if toothache counts as an emergency and if UHS will help",corpus:emergency
+"What do i need to claim my expenses?",corpus:reimbursement
+"how to get my money back after using uhs services",corpus:reimbursement
+"i want to complain about the service i received",corpus:charter
+"My jaw was injured in an accident, is same-day dental help available",corpus:emergency
+"What happens if I dont pay the fee for my personal data access form?",corpus:privacy
+"Can my aunt bring my 14 year old son to see a doctor here if she has a signed letter?",corpus:appointment
+
+"How to get to HKU canteen", fallback
+"who are the doctors at UHS?", fallback
+"What is the cost of a dental checkup?", fallback
+"can i get a HPV shot at uhs?", fallback
+"is the UHS clinic better or the dental clinic at exit B better", fallback
+
+"book for me pls",booking
+"Help me arrange a consultation with UHS.",booking
+"Give me a sick note for absence now",proof
+"i need certificate for illness please?",proof
+"I am dizzy, whats wrong with me?",symptom
+"help head hurts",symptom
+"i think i broke my tooth just now???? what now??",emergency
+"I am bleeding badly",emergency
+"feeling really depressed and hopeless, i want to end it all",crisis
+"want to kms",crisis
+
+
+
+
+
+
