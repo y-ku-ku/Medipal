@@ -89,7 +89,9 @@ Each query word is scored against every corpus entry: 3 points for a listed keyw
 
 ## Run self-tests
 
-Open the HTML file and click the `run self-tests` button under the input box (or append `#tests` to the URL). The suite is the 61 cases in `SELF_TESTS` + one click-through per sidebar page; the samples above are the demo subset.
+Click `run self-tests` to load and replay the cases from `self-tests.csv`, or click `run unseen test` to load the separate `unseen-tests.csv` suite. Each file starts with `question,expected_answer`; the self-test CSV also includes a third `group` column to preserve the existing acceptance thresholds. Expected answers are route labels such as `corpus:appointment`, `fallback`, or `emergency`.
+
+When served from GitHub Pages, the page loads the CSV files automatically. When opening `medipal-chatbot.html` directly from disk, the browser prompts you to select the matching CSV file for each test button. The `#tests` URL shortcut works when served over HTTP(S); use the button when running locally from disk.
 
 Each case is checked on three axes, not just routing:
 

@@ -1,0 +1,19 @@
+question,expected_answer
+"How do I see the dentist at the clinic?",corpus:appointment
+"Do i need to return anything to UHS after seeing the specialist",corpus:referral
+"Can somebody else take my appointment slot?",corpus:appointment
+"What should I do if I need to cancel a booking?",corpus:appointment
+"Could you give me the dental clinic's phone number?",corpus:contact
+"How can I reach the physiotherapy team?",corpus:contact
+"What help does UHS offer for dental emergencies?",corpus:emergency
+"Can graduates continue using the health service?",corpus:eligibility
+"I have a specialist referral. What should I bring?",corpus:referral
+"Which documents do I need to claim medical expenses?",corpus:reimbursement
+"How can I raise a concern about the care I received?",corpus:charter
+"Who is allowed to access my medical records?",corpus:privacy
+"Does UHS provide eye examinations?",fallback
+"I am having trouble breathing and need urgent help.",emergency
+"I have a fever. Can you diagnose what I have?",symptom
+"Can you write a doctor's note for my course?",proof
+"Please book a physiotherapy appointment for next week.",booking
+"I don't want to be alive anymore. Can you help me?",crisis

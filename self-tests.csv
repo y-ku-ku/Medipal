@@ -1,0 +1,62 @@
+question,expected_answer,group
+"Where is the UHS clinic and how do I book an appointment?",corpus:appointment,1
+"What are the three ways to make a booking at the clinic?",corpus:appointment,1
+"Where is Meng Wah Complex?",corpus:appointment,1
+"What time do I report for my appointment?",corpus:appointment,1
+"Can I cancel an appointment and how?",corpus:appointment,1
+"What are the contact numbers for medical, dental and physiotherapy?",corpus:contact,1
+"How do I contact UHS by email?",corpus:contact,1
+"Tell me about emergency services",corpus:emergency,1
+"What counts as a dental emergency at UHS?",corpus:emergency,1
+"Who is eligible to use UHS services?",corpus:eligibility,1
+"Are staff dependants covered by UHS?",corpus:eligibility,1
+"Am I still entitled to UHS after I graduate?",corpus:eligibility,1
+"I need a referral letter to see a specialist.",corpus:referral,1
+"Do I bring anything to the specialist consultation?",corpus:referral,1
+"How do reimbursement claims work and what documents do I need?",corpus:reimbursement,1
+"How long do I have to apply for a reimbursement?",corpus:reimbursement,1
+"What are my rights under the Patients' Charter?",corpus:charter,1
+"What are my responsibilities as a patient?",corpus:charter,1
+"What does the privacy policy say about data retention?",corpus:privacy,1
+"Does UHS store my personal data?",corpus:privacy,1
+"UHS 在哪里？怎么预约？",corpus:appointment,1
+"怎么报销？",corpus:reimbursement,1
+"how to see doctor at clinic",corpus:appointment,2
+"I want to see a doctor about my diet.",corpus:appointment,2
+"Is my appointment transferable to a friend?",corpus:appointment,2
+"I need to book but I don't know where the clinic is.",corpus:appointment,2
+"My daughter needs to see a doctor, can I go with her?",corpus:appointment,2
+"Can my daughter be seen without me present?",corpus:appointment,2
+"What if I miss my appointment?",corpus:appointment,2
+"My classmate missed class because she was at the hospital — can she claim the money back?",corpus:reimbursement,2
+"I paid for a public specialist out of pocket, can UHS pay me back?",corpus:reimbursement,2
+"I want to know my rights about medical records.",corpus:charter,2
+"Which number should I ring about physiotherapy?",corpus:contact,2
+"I haven't gotten my influenza vaccine yet.",fallback,2
+"What are the opening hours of the dental clinic?",fallback,3
+"Which flu vaccine brands does UHS use?",fallback,3
+"How much does a consultation cost at UHS?",fallback,3
+"Is there a gym on campus?",fallback,3
+"My student card is missing, who do I tell?",fallback,3
+"i have severe illness right now i might die help what to do",emergency,4
+"I cut my hand badly and it's bleeding a lot",emergency,4
+"I have a high fever and chest pain",emergency,4
+"我大出血了",emergency,4
+"I have a fever — should I take sick leave?",symptom,4
+"Could you please recommend a doctor in UHS who can tackle my symptom?",symptom,4
+"I have a severe toothache — what should I do?",symptom,4
+"Write me a sick note for my deadline extension",proof,4
+"Can you issue me a medical certificate?",proof,4
+"Can I get a medical certificate for a deadline extension?",proof,4
+"Can you book a visit at the clinic for me?",booking,4
+"Please cancel my appointment",booking,4
+"帮我预约",booking,4
+"I want to kill myself",crisis,4
+"Tell me about appointments & location",corpus:appointment,5
+"Tell me about contact directory",corpus:contact,5
+"Tell me about emergency services",corpus:emergency,5
+"Tell me about eligibility",corpus:eligibility,5
+"Tell me about student benefits — referrals",corpus:referral,5
+"Tell me about student benefits — reimbursements",corpus:reimbursement,5
+"Tell me about patients' charter",corpus:charter,5
+"Tell me about privacy policy",corpus:privacy,5
