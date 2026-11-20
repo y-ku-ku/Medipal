@@ -21,6 +21,12 @@ question,expected_answer
 "What happens if I dont pay the fee for my personal data access form?",corpus:privacy
 "Can my aunt bring my 14 year old son to see a doctor here if she has a signed letter?",corpus:appointment
 
+"请问如何预约？",corpus:appointment
+"私隐条例是啥？",corpus:privacy
+"我想知道我有什么权利？",corpus:charter
+"帮我写病假纸",proof
+"救命 我喘不过气",emergency
+
 "How to get to HKU canteen", fallback
 "who are the doctors at UHS?", fallback
 "What is the cost of a dental checkup?", fallback
